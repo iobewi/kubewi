@@ -45,7 +45,9 @@ htmlcov/
 
 settings.local.json
 
-# Préférences Claude Code locales (non partagées)
+# Claude Code
+.claude/
+CLAUDE.md
 CLAUDE.local.md
 
 # Documentation
