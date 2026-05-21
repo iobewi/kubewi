@@ -1,0 +1,65 @@
+direction: right
+
+workers: {
+  label: "Worker Nodes"
+  style.fill: "#eaeff5"
+  style.stroke: "#7c96b1"
+  style.border-radius: 10
+  style.font-size: 18
+
+  direction: down
+
+  vector1: "Vector\n(Motion Worker)" {
+    style.fill: "#c9d8e8"
+    style.stroke: "#6e8fb3"
+    style.border-radius: 8
+    style.font-size: 15
+  }
+  vector2: "Vector\n(Perception Worker)" {
+    style.fill: "#c9d8e8"
+    style.stroke: "#6e8fb3"
+    style.border-radius: 8
+    style.font-size: 15
+  }
+  vector3: "Vector\n(Edge Worker)" {
+    style.fill: "#c9d8e8"
+    style.stroke: "#6e8fb3"
+    style.border-radius: 8
+    style.font-size: 15
+  }
+  hubble: "Hubble / Cilium\n(flux réseau)" {
+    style.fill: "#c2d3e5"
+    style.stroke: "#6483a8"
+    style.border-radius: 8
+    style.font-size: 15
+  }
+}
+
+backend: {
+  label: "Infrastructure d'exploitation"
+  style.fill: "#ececf0"
+  style.stroke: "#7c6fa8"
+  style.border-radius: 10
+  style.font-size: 18
+
+  direction: down
+
+  loki: "Loki\n(stockage logs)" {
+    style.fill: "#ddd8ec"
+    style.stroke: "#8a7cb3"
+    style.border-radius: 8
+    style.font-size: 15
+  }
+  grafana: "Grafana\n(visualisation)" {
+    style.fill: "#ddd8ec"
+    style.stroke: "#8a7cb3"
+    style.border-radius: 8
+    style.font-size: 15
+  }
+}
+
+workers.vector1 -> backend.loki: "logs" { style.font-size: 13 }
+workers.vector2 -> backend.loki: "logs" { style.font-size: 13 }
+workers.vector3 -> backend.loki: "logs" { style.font-size: 13 }
+workers.hubble -> backend.grafana: "flux réseau" { style.font-size: 13 }
+backend.loki -> backend.grafana: "indexation" { style.font-size: 13 }

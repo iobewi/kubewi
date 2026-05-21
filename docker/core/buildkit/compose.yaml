@@ -2,7 +2,7 @@ services:
   containers-test:
     build:
       context: ../../..
-      dockerfile: containers/docker/Dockerfile
+      dockerfile: docker/core/buildkit/Dockerfile
     image: r2bewi-containers-build:latest
     working_dir: /workspace
     volumes:
@@ -12,7 +12,7 @@ services:
   containers-build:
     build:
       context: ../../..
-      dockerfile: containers/docker/Dockerfile
+      dockerfile: docker/core/buildkit/Dockerfile
     image: r2bewi-containers-build:latest
     container_name: r2bewi-containers-build
     working_dir: /workspace

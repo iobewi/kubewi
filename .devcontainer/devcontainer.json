@@ -1,6 +1,6 @@
 {
   "name": "r2bewi-sdk-manager",
-  "dockerComposeFile": "../docker/sdk/compose.yaml",
+  "dockerComposeFile": "../docker/core/sdk/compose.yaml",
   "service": "r2bewi-sdk-manager",
   "workspaceFolder": "/workspace",
   "customizations": {

@@ -1,0 +1,92 @@
+direction: down
+
+softrt: {
+  label: "Soft real-time — couche orchestrée Kubernetes"
+  style.fill: "#dce8f2"
+  style.stroke: "#5f7ea3"
+  style.border-radius: 10
+  style.font-size: 18
+
+  grid-rows: 2
+  grid-columns: 3
+
+  perception: "Perception\n(CUDA / TensorRT)" {
+    style.fill: "#c9d8e8"
+    style.stroke: "#6e8fb3"
+    style.border-radius: 8
+    style.font-size: 15
+  }
+  nav: "Navigation\n(SLAM / planification)" {
+    style.fill: "#c9d8e8"
+    style.stroke: "#6e8fb3"
+    style.border-radius: 8
+    style.font-size: 15
+  }
+  fusion: "Fusion de données" {
+    style.fill: "#c9d8e8"
+    style.stroke: "#6e8fb3"
+    style.border-radius: 8
+    style.font-size: 15
+  }
+  control: "ros2_control\n(soft RT)" {
+    style.fill: "#c9d8e8"
+    style.stroke: "#6e8fb3"
+    style.border-radius: 8
+    style.font-size: 15
+  }
+  gw: "Passerelles réseau" {
+    style.fill: "#c9d8e8"
+    style.stroke: "#6e8fb3"
+    style.border-radius: 8
+    style.font-size: 15
+  }
+  services: "Services distribués" {
+    style.fill: "#c9d8e8"
+    style.stroke: "#6e8fb3"
+    style.border-radius: 8
+    style.font-size: 15
+  }
+}
+
+boundary: "— Frontière de responsabilité temporelle —\nKubernetes orchestre autour du robot, il ne devient pas le robot" {
+  style.fill: "#f5f5f5"
+  style.stroke: "#999999"
+  style.stroke-dash: 6
+  style.border-radius: 4
+  style.font-size: 15
+  style.font-color: "#555555"
+  style.bold: true
+}
+
+hardrt: {
+  label: "Hard real-time — hors cluster Kubernetes"
+  style.fill: "#f1e7da"
+  style.stroke: "#b07a4f"
+  style.border-radius: 10
+  style.font-size: 18
+
+  grid-rows: 1
+  grid-columns: 3
+
+  mcu: "MCU\n(firmware dédié)" {
+    style.fill: "#e8d8c4"
+    style.stroke: "#b07a4f"
+    style.border-radius: 8
+    style.font-size: 15
+  }
+  microros: "micro-ROS\n(adaptation ROS2 MCU)" {
+    style.fill: "#e8d8c4"
+    style.stroke: "#b07a4f"
+    style.border-radius: 8
+    style.font-size: 15
+  }
+  zenohpico: "Zenoh-Pico\n(communication embarquée)" {
+    style.fill: "#e8d8c4"
+    style.stroke: "#b07a4f"
+    style.border-radius: 8
+    style.font-size: 15
+  }
+}
+
+softrt -> boundary
+boundary -> hardrt

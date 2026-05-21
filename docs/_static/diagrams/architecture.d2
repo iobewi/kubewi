@@ -1,0 +1,264 @@
+direction: down
+
+vars: {
+  d-font: 16
+  d-font-sm: 14
+}
+
+exploitation: {
+  label: "Infrastructure d'exploitation"
+  style.fill: "#E9E2F4"
+  style.stroke: "#8A78B8"
+  style.border-radius: 10
+  style.font-size: 18
+
+  loki: "Loki" {
+    style.fill: "#DCCFEE"
+    style.stroke: "#8A78B8"
+    style.border-radius: 6
+  }
+
+  grafana: "Grafana" {
+    style.fill: "#DCCFEE"
+    style.stroke: "#8A78B8"
+    style.border-radius: 6
+  }
+
+  hubble: "Hubble UI" {
+    style.fill: "#DCCFEE"
+    style.stroke: "#8A78B8"
+    style.border-radius: 6
+  }
+
+  minio: "MinIO" {
+    style.fill: "#DCCFEE"
+    style.stroke: "#8A78B8"
+    style.border-radius: 6
+  }
+}
+
+core: {
+  label: "Core Infrastructure / Core Node"
+
+  style.fill: "#D8E5F2"
+  style.stroke: "#6F8FAF"
+  style.border-radius: 10
+  style.font-size: 18
+
+  grid-rows: 3
+  grid-columns: 1
+
+  cilium: "Cilium" {
+    style.fill: "#C5D6E8"
+    style.stroke: "#6F8FAF"
+    style.border-radius: 6
+  }
+
+  multus: "Multus" {
+    style.fill: "#C5D6E8"
+    style.stroke: "#6F8FAF"
+    style.border-radius: 6
+  }
+
+  k0s: {
+    label: "k0s control plane"
+
+    style.fill: "#BFD2E6"
+    style.stroke: "#5F7FA0"
+    style.border-radius: 8
+
+    grid-rows: 1
+    grid-columns: 3
+
+    registry: "OCI registry" {
+      style.fill: "#AEC6DC"
+      style.stroke: "#5F7FA0"
+    }
+
+    vpn: "VPN" {
+      style.fill: "#AEC6DC"
+      style.stroke: "#5F7FA0"
+    }
+
+    zenoh: "Zenoh router" {
+      style.fill: "#AEC6DC"
+      style.stroke: "#5F7FA0"
+    }
+  }
+}
+
+workers: {
+  direction: right
+
+  style.fill: "#E8EEF5"
+  style.stroke: "#8FA2B8"
+  style.border-radius: 10
+
+  motion: {
+    label: "Motion Worker Node"
+
+    style.fill: "#E5EEF4"
+    style.stroke: "#7FA2A0"
+    style.border-radius: 10
+
+    grid-rows: 3
+    grid-columns: 1
+
+    cilium: "Cilium" {
+      style.fill: "#CFE2E0"
+      style.stroke: "#7FA2A0"
+    }
+
+    multus: "Multus" {
+      style.fill: "#CFE2E0"
+      style.stroke: "#7FA2A0"
+    }
+
+    k0s: {
+      label: "k0s worker"
+
+      style.fill: "#BDD6D3"
+      style.stroke: "#6C918F"
+      style.border-radius: 8
+
+      vector: "Vector" {
+        style.fill: "#ABCAC6"
+        style.stroke: "#6C918F"
+      }
+
+      app: "ros2_control" {
+        style.fill: "#ABCAC6"
+        style.stroke: "#6C918F"
+      }
+    }
+  }
+
+  perception: {
+    label: "Perception Worker Node"
+
+    style.fill: "#E4E1F6"
+    style.stroke: "#8B82BF"
+    style.border-radius: 10
+
+    grid-rows: 3
+    grid-columns: 1
+
+    cilium: "Cilium" {
+      style.fill: "#D3CEF0"
+      style.stroke: "#8B82BF"
+    }
+
+    multus: "Multus" {
+      style.fill: "#D3CEF0"
+      style.stroke: "#8B82BF"
+    }
+
+    k0s: {
+      label: "k0s worker"
+
+      style.fill: "#C4BDE8"
+      style.stroke: "#776DAF"
+
+      vector: "Vector" {
+        style.fill: "#B5AEE0"
+        style.stroke: "#776DAF"
+      }
+
+      app: "CUDA / TensorRT" {
+        style.fill: "#B5AEE0"
+        style.stroke: "#776DAF"
+      }
+    }
+  }
+
+  edge: {
+    label: "Edge Worker Node"
+
+    style.fill: "#EEF0F2"
+    style.stroke: "#8A96A3"
+    style.border-radius: 10
+
+    grid-rows: 3
+    grid-columns: 1
+
+    cilium: "Cilium" {
+      style.fill: "#D8DEE5"
+      style.stroke: "#8A96A3"
+    }
+
+    multus: "Multus" {
+      style.fill: "#D8DEE5"
+      style.stroke: "#8A96A3"
+    }
+
+    k0s: {
+      label: "k0s worker"
+
+      style.fill: "#C9D1DA"
+      style.stroke: "#7C8793"
+
+      vector: "Vector" {
+        style.fill: "#BAC4CE"
+        style.stroke: "#7C8793"
+      }
+
+      app: "gateways" {
+        style.fill: "#BAC4CE"
+        style.stroke: "#7C8793"
+      }
+    }
+  }
+}
+
+hard_rt: {
+  label: "Hors cluster robotique local"
+
+  style.fill: "#EEDFCC"
+  style.stroke: "#B58B62"
+  style.border-radius: 10
+  style.font-size: 18
+
+  motion: "MCU / micro-ROS / Zenoh-Pico" {
+    style.fill: "#E3CFB8"
+    style.stroke: "#B58B62"
+  }
+
+  embedded: "device firmware / hw drivers" {
+    style.fill: "#E3CFB8"
+    style.stroke: "#B58B62"
+  }
+
+  field: "local control / fieldbus / IO" {
+    style.fill: "#E3CFB8"
+    style.stroke: "#B58B62"
+  }
+}
+
+exploitation <-> core: "logs / métriques / stockage" {
+  style.stroke: "#8A78B8"
+  style.font-size: 14
+}
+
+core -> workers.motion {
+  style.stroke: "#6F8FAF"
+}
+
+core -> workers.perception {
+  style.stroke: "#6F8FAF"
+}
+
+core -> workers.edge {
+  style.stroke: "#6F8FAF"
+}
+
+workers.motion -> hard_rt.motion {
+  style.stroke: "#B58B62"
+}
+
+workers.perception -> hard_rt.embedded {
+  style.stroke: "#B58B62"
+}
+
+workers.edge -> hard_rt.field {
+  style.stroke: "#B58B62"
+}

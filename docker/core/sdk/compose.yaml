@@ -4,7 +4,7 @@ services:
     network_mode: host
     build:
       context: ../../..
-      dockerfile: docker/Dockerfile
+      dockerfile: docker/core/sdk/Dockerfile
 
     image: r2bewi-sdk-manager:24.04
     container_name: r2bewi-sdk-manager

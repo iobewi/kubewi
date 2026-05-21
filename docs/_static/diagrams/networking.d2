@@ -1,0 +1,133 @@
+direction: down
+
+node: {
+  label: "Worker Node"
+  style.fill: "#D8E5F2"
+  style.stroke: "#6F8FAF"
+  style.border-radius: 10
+  style.font-size: 18
+
+  cilium: "Cilium / eBPF\nréseau Kubernetes principal" {
+    style.fill: "#BFD2E6"
+    style.stroke: "#5F7FA0"
+    style.border-radius: 8
+    style.font-size: 16
+  }
+
+  multus: "Multus\ninterfaces réseau secondaires" {
+    style.fill: "#C5D6E8"
+    style.stroke: "#6F8FAF"
+    style.border-radius: 8
+    style.font-size: 16
+  }
+}
+
+mgmt: {
+  label: "Réseau de gestion"
+  style.fill: "#E9E2F4"
+  style.stroke: "#8A78B8"
+  style.border-radius: 8
+  style.font-size: 16
+
+  desc: "orchestration Kubernetes\nadministration SSH / API" {
+    style.fill: "#DCCFEE"
+    style.stroke: "#8A78B8"
+    style.border-radius: 6
+    style.font-size: 14
+  }
+}
+
+robot: {
+  label: "Réseau robotique"
+  style.fill: "#D8E5F2"
+  style.stroke: "#6F8FAF"
+  style.border-radius: 8
+  style.font-size: 16
+
+  desc: "ROS2 / Zenoh\ncommunications distribuées" {
+    style.fill: "#C5D6E8"
+    style.stroke: "#6F8FAF"
+    style.border-radius: 6
+    style.font-size: 14
+  }
+}
+
+obs: {
+  label: "Réseau observabilité"
+  style.fill: "#E8EEF5"
+  style.stroke: "#8FA2B8"
+  style.border-radius: 8
+  style.font-size: 16
+
+  desc: "logs Vector → Loki\nmétriques / Hubble" {
+    style.fill: "#D7E3F0"
+    style.stroke: "#8FA2B8"
+    style.border-radius: 6
+    style.font-size: 14
+  }
+}
+
+storage: {
+  label: "Réseau stockage"
+  style.fill: "#E8EEF5"
+  style.stroke: "#8FA2B8"
+  style.border-radius: 8
+  style.font-size: 16
+
+  desc: "MinIO / OCI registry\ntransferts volumineux" {
+    style.fill: "#D7E3F0"
+    style.stroke: "#8FA2B8"
+    style.border-radius: 6
+    style.font-size: 14
+  }
+}
+
+specialized: {
+  label: "Réseaux IP spécialisés"
+  style.fill: "#F4F4F2"
+  style.stroke: "#9AA3AD"
+  style.stroke-dash: 5
+  style.border-radius: 8
+  style.font-size: 16
+
+  desc: "vision / caméras\nLiDAR Ethernet\nréseau haut débit\nEthernet industriel" {
+    style.fill: "#ECEFF2"
+    style.stroke: "#9AA3AD"
+    style.stroke-dash: 5
+    style.border-radius: 6
+    style.font-size: 14
+  }
+}
+
+node.cilium -> mgmt: "primary network" {
+  style.font-size: 13
+  style.stroke: "#6F8FAF"
+}
+
+node.cilium -> obs: "logs / metrics" {
+  style.font-size: 13
+  style.stroke: "#6F8FAF"
+}
+
+node.cilium -> robot: "default pod traffic" {
+  style.font-size: 13
+  style.stroke: "#6F8FAF"
+}
+
+node.multus -> robot: "secondary interface" {
+  style.font-size: 13
+  style.stroke: "#8FA2B8"
+  style.stroke-dash: 5
+}
+
+node.multus -> storage: "dedicated network" {
+  style.font-size: 13
+  style.stroke: "#8FA2B8"
+  style.stroke-dash: 5
+}
+
+node.multus -> specialized: "optional IP networks" {
+  style.font-size: 13
+  style.stroke: "#9AA3AD"
+  style.stroke-dash: 5
+}

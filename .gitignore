@@ -47,3 +47,9 @@ settings.local.json
 
 # Préférences Claude Code locales (non partagées)
 CLAUDE.local.md
+
+# Documentation
+site/
+docs/_build/
+docs/_templates/
+.venv-docs/
