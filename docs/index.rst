@@ -94,4 +94,5 @@ Cas d'usage visés
    :hidden:
 
    architecture/overview
+   provisioning/bare-metal
    reference/glossary
