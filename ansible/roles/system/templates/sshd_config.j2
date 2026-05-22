@@ -1,0 +1,15 @@
+Port {{ ssh_port }}
+AddressFamily any
+ListenAddress 0.0.0.0
+
+PermitRootLogin {{ ssh_permit_root_login }}
+PasswordAuthentication {{ ssh_password_authentication }}
+PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+
+UsePAM yes
+X11Forwarding no
+PrintMotd no
+
+AcceptEnv LANG LC_*
+Subsystem sftp /usr/lib/openssh/sftp-server

@@ -1,0 +1,23 @@
+system_timezone: "{{ timezone | default('Europe/Paris') }}"
+
+system_packages:
+  - curl
+  - vim
+  - ca-certificates
+  - apt-transport-https
+  - gnupg
+
+ssh_port: 22
+ssh_permit_root_login: "no"
+ssh_password_authentication: "no"
+
+chrony_ntp_servers: "{{ ntp_servers | default(['pool.ntp.org']) }}"
+
+system_kernel_modules:
+  - overlay
+  - br_netfilter
+
+system_sysctl:
+  net.bridge.bridge-nf-call-iptables: "1"
+  net.bridge.bridge-nf-call-ip6tables: "1"
+  net.ipv4.ip_forward: "1"

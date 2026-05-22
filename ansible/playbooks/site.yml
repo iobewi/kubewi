@@ -1,0 +1,5 @@
+- name: Full provisioning
+  hosts: all
+  roles:
+    - system
+    - network

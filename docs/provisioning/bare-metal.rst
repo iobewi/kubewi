@@ -43,6 +43,9 @@ Résultat attendu
    :hidden:
 
    prerequisites
+   ansible
+   system
+   network
    controller
    worker
    validation

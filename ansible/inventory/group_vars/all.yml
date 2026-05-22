@@ -1,0 +1,11 @@
+# Escalade de privilèges — requis pour toutes les tâches système
+# Si sudo nécessite un mot de passe : ansible-playbook ... --ask-become-pass
+ansible_become: true
+ansible_become_method: sudo
+
+timezone: Europe/Paris
+
+ntp_servers:
+  - 0.fr.pool.ntp.org
+  - 1.fr.pool.ntp.org
+  - 2.fr.pool.ntp.org
