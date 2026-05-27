@@ -1,0 +1,10 @@
+- name: Generate worker join token
+  ansible.builtin.command: k0s token create --role=worker
+  register: k0s_worker_token
+  changed_when: false
+
+- name: Save worker join token
+  ansible.builtin.copy:
+    content: "{{ k0s_worker_token.stdout }}"
+    dest: "{{ k0s_config_dir }}/worker-token"
+    mode: "0600"

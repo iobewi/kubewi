@@ -1,0 +1,9 @@
+- name: restart systemd-networkd
+  ansible.builtin.systemd:
+    name: systemd-networkd
+    state: restarted
+
+- name: restart wpa_supplicant
+  ansible.builtin.systemd:
+    name: "wpa_supplicant@{{ network_wifi.iface }}"
+    state: restarted

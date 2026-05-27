@@ -1,0 +1,24 @@
+- name: Install wpa_supplicant
+  ansible.builtin.apt:
+    name: wpasupplicant
+    state: present
+
+- name: Deploy wpa_supplicant configuration
+  ansible.builtin.template:
+    src: wpa_supplicant.conf.j2
+    dest: /etc/wpa_supplicant/wpa_supplicant-{{ network_wifi.iface }}.conf
+    mode: "0600"
+  notify: restart wpa_supplicant
+
+- name: Deploy WiFi network configuration
+  ansible.builtin.template:
+    src: wifi.network.j2
+    dest: /etc/systemd/network/50-{{ network_wifi.iface }}.network
+    mode: "0644"
+  notify: restart systemd-networkd
+
+- name: Enable wpa_supplicant for WiFi interface
+  ansible.builtin.systemd:
+    name: "wpa_supplicant@{{ network_wifi.iface }}"
+    enabled: true
+    state: started

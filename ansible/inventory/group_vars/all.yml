@@ -9,3 +9,16 @@ ntp_servers:
   - 0.fr.pool.ntp.org
   - 1.fr.pool.ntp.org
   - 2.fr.pool.ntp.org
+
+network_vlans:
+  - id: 220
+    name: kube
+    subnet: 192.168.22.0/24
+  - id: 420
+    name: data
+    subnet: 192.168.42.0/24
+  - id: 620
+    name: ros
+    subnet: 192.168.62.0/24
+
+network_bridge_name: br0

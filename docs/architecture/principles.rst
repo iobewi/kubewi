@@ -90,7 +90,7 @@ La résilience couvre :
 - la couche communication (Zenoh, fallback local).
 
 .. important::
-   Invariant clé — La perte d'une fonction d'exploitation (observabilité, stockage froid) ne doit jamais provoquer l'arrêt des fonctions robotiques essentielles.
+   Invariant clé : La perte d'une fonction d'exploitation (observabilité, stockage froid) ne doit jamais provoquer l'arrêt des fonctions robotiques essentielles.
 
 → Voir :doc:`Modes dégradés <resilience>` pour les scénarios détaillés.
 

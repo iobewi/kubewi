@@ -80,13 +80,13 @@ Architecture cible
 Cas d'usage visés
 -----------------
 
-**Robotique distribuée** — robots multi-calculateur, perception déportée, coordination multi-agents.
+**Robotique distribuée** : robots multi-calculateur, perception déportée, coordination multi-agents.
 
-**Plateformes ROS2 hétérogènes** — Jetson, Raspberry Pi, serveurs x86, workloads CPU/GPU mixtes.
+**Plateformes ROS2 hétérogènes** : Jetson, Raspberry Pi, serveurs x86, workloads CPU/GPU mixtes.
 
-**Edge robotics** — systèmes embarqués connectés ou isolés, fonctionnement déconnecté d'un cloud externe.
+**Edge robotics** : systèmes embarqués connectés ou isolés, fonctionnement déconnecté d'un cloud externe.
 
-**Laboratoires et R&D** — expérimentation reproductible, validation d'architectures distribuées.
+**Laboratoires et R&D** : expérimentation reproductible, validation d'architectures distribuées.
 
 ----
 

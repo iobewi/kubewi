@@ -1,0 +1,4 @@
+- name: Network provisioning
+  hosts: all
+  roles:
+    - network

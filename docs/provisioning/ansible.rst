@@ -13,7 +13,7 @@ Principe de fonctionnement
 
 Ansible est un outil d'**automatisation de configuration** et de
 **provisioning d'infrastructure**. Il permet de décrire l'état attendu
-d'un système — paquets installés, fichiers déployés, services actifs —
+d'un système (paquets installés, fichiers déployés, services actifs)
 et de l'appliquer de façon cohérente sur un ou plusieurs nœuds distants.
 
 Dans le contexte KubeWI, Ansible prend en charge l'intégralité de la
@@ -22,18 +22,18 @@ runtime conteneur et bootstrap Kubernetes. L'objectif est de pouvoir
 (re)provisionner un nœud de façon fiable et reproductible, sans
 intervention manuelle.
 
-**Sans agent** — Ansible se connecte aux nœuds via SSH et exécute les
+**Sans agent** : Ansible se connecte aux nœuds via SSH et exécute les
 tâches à distance avec Python. Aucun service ni daemon Ansible ne tourne
 sur les nœuds cibles. La seule condition préalable est un accès SSH
 fonctionnel.
 
-**Idempotent** — relancer un playbook sur un nœud déjà configuré ne
+**Idempotent** : relancer un playbook sur un nœud déjà configuré ne
 produit aucun changement si l'état du système correspond à la
 configuration déclarée. Cette propriété permet d'appliquer une
 configuration en toute sécurité, que le nœud soit vierge ou partiellement
 configuré, et de corriger une dérive de configuration sans effet de bord.
 
-**Déclaratif** — la configuration est exprimée sous forme de YAML lisible.
+**Déclaratif** : la configuration est exprimée sous forme de YAML lisible.
 On décrit *ce que le système doit être*, pas *les commandes à exécuter
 dans quel ordre*. Ansible traduit cette déclaration en actions concrètes
 adaptées à l'état courant du nœud.
@@ -91,12 +91,12 @@ modules builtin d'Ansible :
 
 .. list-table::
    :header-rows: 1
-   :widths: 25 75
+   :widths: 30 70
 
    * - Collection
      - Modules utilisés
    * - ``ansible.posix``
-     - ``sysctl`` — paramètres noyau
+     - ``sysctl`` : paramètres noyau
    * - ``community.general``
      - ``timezone``, ``modprobe``
 
@@ -137,12 +137,82 @@ Chaque section de provisioning documente le rôle qui la met en œuvre.
 
 ----
 
+Inventory
+---------
+
+L'inventory déclare les nœuds du cluster, leurs adresses, leurs
+groupes et les variables associées. Le fichier principal est
+``inventory/hosts.yml``.
+
+Les nœuds sont organisés en deux groupes :
+
+.. code-block:: yaml
+
+   all:
+     children:
+       controllers:
+         hosts:
+           controller-01:
+             ansible_host: 192.168.x.x
+             ansible_user: <user>
+       workers:
+         hosts:
+           worker-motion-01:
+             ansible_host: 192.168.x.x
+             ansible_user: <user>
+
+Les variables communes à tous les nœuds sont déclarées dans
+``inventory/group_vars/all.yml`` (timezone, NTP, become). Les variables
+propres à un groupe sont dans ``group_vars/controllers.yml`` et
+``group_vars/workers.yml``.
+
+Le nom déclaré dans l'inventory (``controller-01``, ``worker-motion-01``)
+est utilisé par Ansible comme hostname du nœud lors du provisioning.
+
+----
+
+Playbooks
+---------
+
+Un playbook associe un ou plusieurs rôles à un groupe de nœuds.
+C'est le point d'entrée de chaque opération Ansible.
+
+KubeWI fournit les playbooks suivants :
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Playbook
+     - Usage
+   * - ``playbooks/bootstrap.yml``
+     - Déploiement de la clé SSH et du sudo sans mot de passe.
+
+       À exécuter une seule fois par nœud.
+   * - ``playbooks/system.yml``
+     - Configuration système de base sur tous les nœuds
+       (OS, SSH, chrony, containerd).
+   * - ``playbooks/site.yml``
+     - Provisioning complet (système + réseau).
+
+Un playbook est un fichier YAML minimal qui déclare les hôtes ciblés
+et les rôles à appliquer :
+
+.. code-block:: yaml
+
+   - name: System base provisioning
+     hosts: all
+     roles:
+       - system
+
+----
+
 Gestion des privilèges
 -----------------------
 
 La plupart des tâches de provisioning requièrent les droits ``root``
 (installation de paquets, configuration système, modification de
-fichiers système). L'user de connexion SSH n'est pas root — Ansible
+fichiers système). L'user de connexion SSH n'est pas root, Ansible
 utilise ``sudo`` pour escalader les privilèges via le mécanisme
 ``become``.
 
@@ -182,7 +252,7 @@ Préparation SSH
 
 Ansible se connecte aux nœuds via SSH avec authentification par clé.
 L'authentification par mot de passe sera **désactivée par le playbook**
-une fois la clé en place — l'ordre des opérations est donc important.
+une fois la clé en place. L'ordre des opérations est donc important.
 
 **1. Générer une paire de clés dédiée** sur la machine de contrôle :
 
@@ -192,8 +262,8 @@ une fois la clé en place — l'ordre des opérations est donc important.
 
 **2. Distribuer la clé sur chaque nœud**
 
-Cette étape nécessite une **authentification par mot de passe** — c'est
-la seule fois où un mot de passe sera utilisé. Un playbook dédié à usage
+Cette étape nécessite une **authentification par mot de passe**.
+C'est la seule fois où un mot de passe sera utilisé. Un playbook dédié à usage
 unique (``playbooks/bootstrap.yml``) se charge de déployer la clé et de
 configurer le sudo sans mot de passe sur l'ensemble des nœuds. La
 séquence complète est décrite dans :doc:`system`.
@@ -205,7 +275,7 @@ séquence complète est décrite dans :doc:`system`.
    ssh -i ~/.ssh/kubewi_ansible <user>@<ip-noeud>
 
 La clé privée à utiliser est déclarée dans ``ansible.cfg`` via
-``private_key_file`` — Ansible l'utilisera automatiquement pour toutes
+``private_key_file``, Ansible l'utilisera automatiquement pour toutes
 les connexions sans configuration supplémentaire.
 
 ----

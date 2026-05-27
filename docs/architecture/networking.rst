@@ -4,7 +4,7 @@ Réseau
 Le réseau n'est pas un simple transport transparent entre workloads. Il constitue une composante structurelle explicite de l'architecture robotique distribuée.
 
 .. important::
-   Kubernetes ne constitue pas l'unique couche de communication du système robotique. Le système porte simultanément des flux IP orchestrés, des middlewares distribués, des bus matériels et des interfaces firmware — chacun avec ses propres contraintes.
+   Kubernetes ne constitue pas l'unique couche de communication du système robotique. Le système porte simultanément des flux IP orchestrés, des middlewares distribués, des bus matériels et des interfaces firmware, chacun avec ses propres contraintes.
 
 Introduction
 -------------
@@ -16,7 +16,7 @@ KubeWI traite le réseau comme une ressource critique influençant directement :
 - la visibilité du système distribué ;
 - les capacités de communication entre nœuds, middlewares et composants embarqués.
 
-L'architecture cherche à rendre les flux réseau explicites, observables et maîtrisables — pas à les abstraire.
+L'architecture cherche à rendre les flux réseau explicites, observables et maîtrisables, pas à les abstraire.
 
 Domaines réseau
 ----------------
@@ -208,8 +208,8 @@ Positionnement architectural
 
 L'architecture KubeWI considère les flux réseau comme des contraintes système devant rester :
 
-- **observables** — chaque flux peut être inspecté et analysé nativement ;
-- **segmentés** — les domaines réseau sont séparés selon leurs usages et contraintes ;
-- **maîtrisables** — les politiques réseau sont déclaratives, explicites et versionnées ;
-- **reproductibles** — les topologies sont documentées et déployables de manière déterministe ;
-- **résilientes** — la perte d'un domaine réseau ne doit pas interrompre les fonctions critiques.
+- **observables** : chaque flux peut être inspecté et analysé nativement ;
+- **segmentés** : les domaines réseau sont séparés selon leurs usages et contraintes ;
+- **maîtrisables** : les politiques réseau sont déclaratives, explicites et versionnées ;
+- **reproductibles** : les topologies sont documentées et déployables de manière déterministe ;
+- **résilientes** : la perte d'un domaine réseau ne doit pas interrompre les fonctions critiques.

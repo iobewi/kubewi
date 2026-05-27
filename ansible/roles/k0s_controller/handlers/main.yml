@@ -1,0 +1,4 @@
+- name: restart k0scontroller
+  ansible.builtin.systemd:
+    name: k0scontroller
+    state: restarted

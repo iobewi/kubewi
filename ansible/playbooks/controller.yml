@@ -1,0 +1,4 @@
+- name: Controller node provisioning
+  hosts: controllers
+  roles:
+    - k0s_controller

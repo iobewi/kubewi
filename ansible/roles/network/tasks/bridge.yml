@@ -1,0 +1,27 @@
+- name: Enable systemd-networkd
+  ansible.builtin.systemd:
+    name: systemd-networkd
+    enabled: true
+    state: started
+
+- name: Deploy bridge netdev
+  ansible.builtin.template:
+    src: bridge.netdev.j2
+    dest: /etc/systemd/network/10-{{ network_bridge_name }}.netdev
+    mode: "0644"
+  notify: restart systemd-networkd
+
+- name: Deploy bridge member interfaces
+  ansible.builtin.template:
+    src: bridge-member.network.j2
+    dest: /etc/systemd/network/20-{{ item }}.network
+    mode: "0644"
+  loop: "{{ network_bridge_members }}"
+  notify: restart systemd-networkd
+
+- name: Deploy bridge network
+  ansible.builtin.template:
+    src: bridge.network.j2
+    dest: /etc/systemd/network/30-{{ network_bridge_name }}.network
+    mode: "0644"
+  notify: restart systemd-networkd

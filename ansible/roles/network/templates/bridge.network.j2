@@ -1,0 +1,8 @@
+[Match]
+Name={{ network_bridge_name }}
+
+[Network]
+{% for vlan in network_vlans %}
+VLAN={{ network_bridge_name }}.{{ vlan.id }}
+{% endfor %}
+LinkLocalAddressing=no

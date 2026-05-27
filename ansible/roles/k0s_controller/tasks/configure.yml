@@ -1,0 +1,12 @@
+- name: Create k0s config directory
+  ansible.builtin.file:
+    path: "{{ k0s_config_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Deploy k0s configuration
+  ansible.builtin.template:
+    src: k0s.yaml.j2
+    dest: "{{ k0s_config_dir }}/k0s.yaml"
+    mode: "0644"
+  notify: restart k0scontroller

@@ -6,9 +6,9 @@ Les modes dégradés sont une propriété normale des systèmes robotiques distr
 Introduction
 -------------
 
-KubeWI ne cherche pas à construire une plateforme infiniment résiliente. Elle cherche à **dégrader le système de manière contrôlée et prévisible** — en maintenant les fonctions essentielles même en présence de défauts partiels d'infrastructure ou de connectivité.
+KubeWI ne cherche pas à construire une plateforme infiniment résiliente. Elle cherche à **dégrader le système de manière contrôlée et prévisible** : en maintenant les fonctions essentielles même en présence de défauts partiels d'infrastructure ou de connectivité.
 
-La couche orchestrée ne doit pas devenir un point de dépendance immédiat des fonctions critiques. Aucune fonction critique immédiate ne doit dépendre exclusivement d'un composant distribué unique — cluster, réseau, stockage, observabilité ou orchestration.
+La couche orchestrée ne doit pas devenir un point de dépendance immédiat des fonctions critiques. Aucune fonction critique immédiate ne doit dépendre exclusivement d'un composant distribué unique : cluster, réseau, stockage, observabilité ou orchestration.
 
 .. important::
    Invariants de résilience
@@ -142,7 +142,7 @@ Dégradations hard real-time
 
 Les composants hard real-time autonomes sont volontairement découplés de toute dépendance d'exploitation et d'orchestration distribuée.
 
-Résilience locale — le Worker Node comme unité de survie
+Résilience locale : le Worker Node comme unité de survie
 ----------------------------------------------------------
 
 Chaque Worker Node constitue l'unité minimale de survie opérationnelle de la plateforme.
@@ -182,7 +182,7 @@ L'objectif est de :
 Positionnement architectural
 ------------------------------
 
-KubeWI traite les modes dégradés comme une contrainte normale des systèmes distribués edge — pas comme des cas d'erreur exceptionnels.
+KubeWI traite les modes dégradés comme une contrainte normale des systèmes distribués edge : pas comme des cas d'erreur exceptionnels.
 
 L'architecture cherche à maintenir, même en présence de défauts partiels :
 
@@ -191,4 +191,4 @@ L'architecture cherche à maintenir, même en présence de défauts partiels :
 - les capacités critiques de contrôle et d'acquisition ;
 - les communications essentielles locales.
 
-La dégradation est contrôlée, hiérarchisée et prévisible. Le système ne s'arrête pas — il se replie sur ses fonctions locales essentielles.
+La dégradation est contrôlée, hiérarchisée et prévisible. Le système ne s'arrête pas : il se replie sur ses fonctions locales essentielles.

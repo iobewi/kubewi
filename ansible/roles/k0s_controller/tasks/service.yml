@@ -1,0 +1,16 @@
+- name: Install k0s controller service
+  ansible.builtin.command:
+    cmd: k0s install controller --config {{ k0s_config_dir }}/k0s.yaml
+    creates: /etc/systemd/system/k0scontroller.service
+
+- name: Enable and start k0s controller
+  ansible.builtin.systemd:
+    name: k0scontroller
+    enabled: true
+    state: started
+
+- name: Wait for k0s API to be ready
+  ansible.builtin.wait_for:
+    host: "{{ k0s_api_address }}"
+    port: 6443
+    timeout: 120

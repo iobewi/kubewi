@@ -39,7 +39,7 @@ Systèmes d'exploitation supportés
 .. note::
 
    Le rôle Kubernetes du nœud (control plane ou worker) n'est pas un
-   prérequis matériel — il est défini lors du bootstrap k0s.
+   prérequis matériel : il est défini lors du bootstrap k0s.
 
 Prérequis système
 -----------------

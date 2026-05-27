@@ -1,0 +1,4 @@
+- name: Worker node provisioning
+  hosts: workers
+  roles:
+    - k0s_worker

@@ -1,0 +1,4 @@
+- name: Restart k0s worker
+  ansible.builtin.systemd:
+    name: k0sworker
+    state: restarted

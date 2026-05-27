@@ -1,0 +1,80 @@
+direction: down
+
+physical: {
+  label: "Interfaces physiques"
+  style.fill: "#eaeff5"
+  style.stroke: "#7c96b1"
+  style.border-radius: 10
+  style.font-size: 16
+
+  eth0: "eth0" {
+    style.fill: "#dce8f2"
+    style.stroke: "#5f7ea3"
+    style.border-radius: 6
+    style.font-size: 14
+  }
+  eth1: "eth1  (optionnel)" {
+    style.fill: "#dce8f2"
+    style.stroke: "#5f7ea3"
+    style.border-radius: 6
+    style.font-size: 14
+    style.stroke-dash: 4
+  }
+}
+
+bridge: {
+  label: "br0 — bridge Linux"
+  style.fill: "#e2eaf4"
+  style.stroke: "#6483a8"
+  style.border-radius: 10
+  style.font-size: 16
+  grid-rows: 1
+  grid-columns: 4
+
+  native: "natif / untagged\nSSH secours" {
+    style.fill: "#ececf0"
+    style.stroke: "#9aa9b8"
+    style.border-radius: 6
+    style.font-size: 13
+  }
+  v220: "br0.220\nkube" {
+    style.fill: "#c9d8e8"
+    style.stroke: "#6e8fb3"
+    style.border-radius: 6
+    style.font-size: 13
+  }
+  v420: "br0.420\ndata" {
+    style.fill: "#c9d8e8"
+    style.stroke: "#6e8fb3"
+    style.border-radius: 6
+    style.font-size: 13
+  }
+  v620: "br0.620\nros" {
+    style.fill: "#c9d8e8"
+    style.stroke: "#6e8fb3"
+    style.border-radius: 6
+    style.font-size: 13
+  }
+}
+
+wifi: {
+  label: "wlan0 — controller uniquement"
+  style.fill: "#ede9e2"
+  style.stroke: "#b8a98a"
+  style.border-radius: 10
+  style.font-size: 14
+}
+
+physical.eth0 -> bridge
+physical.eth1 -> bridge
+wifi -> "accès externe / opérateur": {
+  style.stroke-dash: 4
+  style.font-size: 12
+}
+
+"accès externe / opérateur": {
+  style.fill: "#f5f5f0"
+  style.stroke: "#c0b898"
+  style.border-radius: 8
+  style.font-size: 13
+}

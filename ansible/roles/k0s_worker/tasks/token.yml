@@ -1,0 +1,17 @@
+- name: Ensure k0s config directory exists
+  ansible.builtin.file:
+    path: "{{ k0s_config_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Fetch worker join token from controller
+  ansible.builtin.slurp:
+    src: "{{ k0s_config_dir }}/worker-token"
+  register: k0s_token_slurp
+  delegate_to: "{{ groups['controllers'][0] }}"
+
+- name: Write worker join token
+  ansible.builtin.copy:
+    content: "{{ k0s_token_slurp.content | b64decode }}"
+    dest: "{{ k0s_config_dir }}/worker-token"
+    mode: "0600"

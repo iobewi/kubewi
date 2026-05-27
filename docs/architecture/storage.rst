@@ -114,12 +114,12 @@ Les agents Vector sont déployés au plus près des workloads afin de :
 - limiter les dépendances centralisées.
 
 .. note::
-   Loki est un backend d'indexation de logs — pas un système de stockage applicatif généraliste.
+   Loki est un backend d'indexation de logs : pas un système de stockage applicatif généraliste.
    Il n'est pas conçu pour stocker des données opérationnelles ou des artefacts volumineux.
 
 → Voir :doc:`Observabilité <observability>` pour le détail de la stack.
 
-Stockage objet — MinIO
+Stockage objet : MinIO
 -----------------------
 
 MinIO constitue la solution principale de stockage objet compatible S3.
@@ -153,7 +153,7 @@ Ces mécanismes peuvent exister pour des usages ponctuels spécifiques, mais ne 
 Architecture d'exploitation
 -----------------------------
 
-Les services de stockage froid et d'observabilité peuvent être externalisés hors du cluster robotique local — c'est même l'approche recommandée pour les déploiements disposant de ressources dédiées.
+Les services de stockage froid et d'observabilité peuvent être externalisés hors du cluster robotique local : c'est même l'approche recommandée pour les déploiements disposant de ressources dédiées.
 
 .. list-table::
    :header-rows: 1
@@ -188,7 +188,7 @@ Résilience stockage
 L'architecture garantit un niveau minimal d'autonomie opérationnelle locale même en cas de perte des composants d'exploitation et d'archivage.
 
 .. important::
-   Invariant — La perte temporaire du stockage d'exploitation (MinIO, Loki, Grafana) ne doit pas empêcher le fonctionnement immédiat du système robotique.
+   Invariant : La perte temporaire du stockage d'exploitation (MinIO, Loki, Grafana) ne doit pas empêcher le fonctionnement immédiat du système robotique.
 
 .. list-table::
    :header-rows: 1
@@ -217,10 +217,10 @@ Positionnement architectural
 
 KubeWI distingue explicitement :
 
-- **stockage opérationnel** — volumes Kubernetes, données nécessaires au fonctionnement immédiat ;
-- **observabilité** — pipeline distribué Vector → Loki → Grafana, non bloquant ;
-- **stockage objet** — MinIO, artefacts et données volumineuses longue durée ;
-- **exploitation distribuée** — séparable, externalisable, non critique pour le robot.
+- **stockage opérationnel** : volumes Kubernetes, données nécessaires au fonctionnement immédiat ;
+- **observabilité** : pipeline distribué Vector → Loki → Grafana, non bloquant ;
+- **stockage objet** : MinIO, artefacts et données volumineuses longue durée ;
+- **exploitation distribuée** : séparable, externalisable, non critique pour le robot.
 
 Cette architecture vise à conserver un système observable, découplé, reproductible, compatible avec les modes dégradés et adapté aux contraintes edge.
 

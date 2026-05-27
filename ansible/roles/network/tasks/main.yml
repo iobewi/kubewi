@@ -1,0 +1,4 @@
+- ansible.builtin.import_tasks: bridge.yml
+- ansible.builtin.import_tasks: vlans.yml
+- ansible.builtin.import_tasks: wifi.yml
+  when: network_wifi is defined

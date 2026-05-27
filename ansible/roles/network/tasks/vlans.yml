@@ -1,0 +1,15 @@
+- name: Deploy VLAN netdevs
+  ansible.builtin.template:
+    src: vlan.netdev.j2
+    dest: /etc/systemd/network/40-{{ network_bridge_name }}.{{ item.id }}.netdev
+    mode: "0644"
+  loop: "{{ network_vlans }}"
+  notify: restart systemd-networkd
+
+- name: Deploy VLAN networks
+  ansible.builtin.template:
+    src: vlan.network.j2
+    dest: /etc/systemd/network/40-{{ network_bridge_name }}.{{ item.id }}.network
+    mode: "0644"
+  loop: "{{ network_vlans }}"
+  notify: restart systemd-networkd

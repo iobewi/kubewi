@@ -1,0 +1,20 @@
+- name: Install k0s worker service
+  ansible.builtin.command:
+    cmd: k0s install worker --token-file {{ k0s_config_dir }}/worker-token
+    creates: /etc/systemd/system/k0sworker.service
+
+- name: Enable and start k0s worker
+  ansible.builtin.systemd:
+    name: k0sworker
+    enabled: true
+    state: started
+
+- name: Wait for worker node to be Ready
+  ansible.builtin.command:
+    cmd: k0s kubectl get node {{ inventory_hostname }}
+  delegate_to: "{{ groups['controllers'][0] }}"
+  register: node_status
+  until: "'Ready' in node_status.stdout"
+  retries: 24
+  delay: 10
+  changed_when: false

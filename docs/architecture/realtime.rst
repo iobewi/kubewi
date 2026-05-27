@@ -1,7 +1,7 @@
 Temps réel
 ===========
 
-Kubernetes orchestre autour du robot — il ne devient pas le robot.
+Kubernetes orchestre autour du robot : il ne devient pas le robot.
 
 Introduction
 -------------
@@ -88,13 +88,13 @@ Les composants hard real-time restent hors de la couche orchestrée Kubernetes.
 
 .. important::
    Le projet ne considère pas Kubernetes comme une couche adaptée aux garanties hard real-time strictes.
-   Certains mécanismes — PREEMPT_RT, pinning CPU, isolation de cœurs, tuning noyau — peuvent améliorer
+   Certains mécanismes (PREEMPT_RT, pinning CPU, isolation de cœurs, tuning noyau) peuvent améliorer
    la stabilité temporelle locale, mais ne constituent pas des garanties déterministes équivalentes à un firmware embarqué.
 
 Soft real-time
 ---------------
 
-Certaines fonctions robotiques tolèrent une variabilité temporelle compatible avec une architecture distribuée orchestrée. Ce ne sont pas des fonctions "non temps réel" — elles ont des contraintes, mais celles-ci restent compatibles avec un scheduler généraliste et un réseau IP.
+Certaines fonctions robotiques tolèrent une variabilité temporelle compatible avec une architecture distribuée orchestrée. Ce ne sont pas des fonctions "non temps réel" : elles ont des contraintes, mais celles-ci restent compatibles avec un scheduler généraliste et un réseau IP.
 
 **Exemples de fonctions soft RT orchestrables :**
 
