@@ -1,0 +1,7 @@
+- name: Generate SDK WireGuard config locally
+  ansible.builtin.template:
+    src: wg0-sdk.conf.j2
+    dest: "{{ playbook_dir }}/../../wireguard/wg0-sdk.conf"
+    mode: '0600'
+  delegate_to: localhost
+  become: false

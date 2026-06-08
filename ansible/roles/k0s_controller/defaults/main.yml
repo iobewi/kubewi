@@ -1,7 +1,5 @@
-k0s_install_dir: /usr/local/bin
-k0s_config_dir: /etc/k0s
+k0s_api_address: "192.168.22.{{ host_id }}"
 
-k0s_pod_cidr: 10.244.0.0/16
-k0s_service_cidr: 10.96.0.0/12
-
-k0s_cilium_version: "1.16.6"
+registry_image: "registry:2"
+registry_port: 5000
+registry_data_dir: /var/lib/registry

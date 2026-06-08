@@ -5,4 +5,9 @@ Name={{ network_bridge_name }}
 {% for vlan in network_vlans %}
 VLAN={{ network_bridge_name }}.{{ vlan.id }}
 {% endfor %}
+{% if network_provisioning_ip is defined %}
+Address={{ network_provisioning_ip }}
+{% endif %}
+DHCP=no
 LinkLocalAddressing=no
+IPv4SendRedirects=no

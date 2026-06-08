@@ -1,0 +1,17 @@
+[Match]
+Name={{ network_bridge_name }}.220
+
+[Network]
+LinkLocalAddressing=no
+IPv4SendRedirects=no
+{% if network_vlan_ips is defined and '220' in network_vlan_ips %}
+Address={{ network_vlan_ips['220'] }}
+{% endif %}
+{% if network_cluster_dns is defined %}
+DNS={{ network_cluster_dns }}
+{% endif %}
+
+[Route]
+Gateway={{ network_vlans | selectattr('id', 'equalto', 220) | map(attribute='gateway') | first }}
+Destination=0.0.0.0/0
+Metric=100

@@ -8,10 +8,14 @@ indépendamment de leur rôle Kubernetes.
    :local:
    :depth: 1
 
+.. _premier-run:
+
 Premier run
 -----------
 
-Séquence à suivre pour un premier déploiement sur nœud vierge.
+Le premier run doit initialiser le controller avant que le tunnel WireGuard
+ne soit disponible. Le playbook ``init.yml`` enchaîne les quatre étapes
+nécessaires en utilisant l'IP DHCP de ``eth0`` comme point d'entrée temporaire.
 
 **1. Installer les collections requises**
 
@@ -20,32 +24,73 @@ Séquence à suivre pour un premier déploiement sur nœud vierge.
    cd ansible
    ansible-galaxy collection install -r requirements.yml
 
-**2. Renseigner l'inventaire**
+**2. Initialiser l'inventaire local**
 
-Éditer ``inventory/hosts.yml`` : adresses IP et users de connexion
-de chaque nœud.
-
-**3. Bootstrap : clé SSH et sudo sans mot de passe**
-
-Le flux officiel utilise ``playbooks/bootstrap.yml``. Ce playbook prépare
-l'accès SSH par clé et configure le sudo sans mot de passe. Les playbooks
-suivants doivent pouvoir être exécutés sans mot de passe interactif.
-
-Cette étape est à exécuter **une seule fois** par nœud.
+Les fichiers ``hosts.yml`` et ``vault.yml`` ne sont pas versionnés.
+Les générer depuis les exemples (depuis le répertoire ``ansible/``) :
 
 .. code-block:: bash
 
-   ansible-playbook -i inventory/hosts.yml playbooks/bootstrap.yml --ask-pass --ask-become-pass
+   cd ansible
+   make init
 
-Ansible demande deux mots de passe :
+**3. Renseigner l'inventaire**
 
-- ``SSH password`` : pour la connexion initiale
-- ``BECOME password`` : pour l'escalade sudo
+Éditer ``inventory/hosts.yml`` :
 
-Après ce run, l'accès SSH par clé est actif et sudo est sans mot de passe
-sur tous les nœuds.
+.. code-block:: yaml
 
-**4. Vérifier la connectivité**
+   init_host: "192.168.x.x"    # IP DHCP courante de eth0 (visible sur le routeur)
+
+Les autres valeurs (``ansible_host``, ``ansible_user``, interfaces)
+correspondent à l'exemple fourni dans ``hosts.yml.example``.
+
+**4. Renseigner le vault**
+
+Deux commandes dédiées permettent de remplir ``vault.yml`` sans l'éditer
+manuellement :
+
+.. code-block:: bash
+
+   make wifi             # credentials WiFi (prompt interactif)
+   make wireguard-keys   # génère et injecte les clés WireGuard
+
+Le vault peut être chiffré après remplissage (optionnel, fichier gitignore) :
+
+.. code-block:: bash
+
+   make vault-encrypt
+
+Pour modifier le vault ultérieurement :
+
+.. code-block:: bash
+
+   make vault-edit
+
+**5. Exécuter le playbook d'initialisation**
+
+.. code-block:: bash
+
+   ansible-playbook -i inventory/hosts.yml playbooks/init.yml \
+     -k --ask-become-pass --ask-vault-pass
+
+Ansible demande trois mots de passe :
+
+- ``SSH password`` (``-k``) — connexion initiale par mot de passe
+- ``BECOME password`` — escalade sudo
+- ``Vault password`` — déchiffrement des clés WireGuard
+
+Ce playbook s'exécute **une seule fois**. Il bootstrap le controller,
+configure l'OS, le réseau et déploie WireGuard. Il génère également
+``wireguard/wg0-sdk.conf`` en local.
+
+**6. Activer le tunnel WireGuard sur le SDK**
+
+.. code-block:: bash
+
+   make vpn-up
+
+**7. Vérifier la connectivité**
 
 .. code-block:: bash
 
@@ -62,10 +107,17 @@ Le rôle configure les éléments suivants sur chaque nœud :
 
 - **hostname** : positionné depuis le nom d'hôte déclaré dans l'inventaire
 - **timezone** : configurable via la variable ``timezone`` (défaut : ``Europe/Paris``)
-- **paquets de base** : ``curl``, ``vim``, ``ca-certificates``, ``apt-transport-https``, ``gnupg``
-- **swap désactivé** : requis par Kubernetes (runtime et ``/etc/fstab``)
+- **paquets de base** : ``avahi-daemon``, ``curl``, ``vim``, ``ca-certificates``, ``apt-transport-https``, ``gnupg``
+- **swap désactivé** : requis par Kubernetes — sur Debian 13 Trixie (RPi), la
+  swap zram est gérée par ``systemd-zram-setup@zram0`` qui est masqué
+  (``/dev/zram0`` désactivé, unité pointée vers ``/dev/null``) ;
+  ``/etc/fstab`` est également purgé de toute entrée swap
 - **modules noyau** : ``overlay`` et ``br_netfilter`` chargés au démarrage
-- **paramètres sysctl** : forwarding IPv4 et filtrage bridge activés
+- **paramètres sysctl** : forwarding IPv4 activé sur tous les nœuds
+  (requis par Cilium pour le routage inter-pods) ; ``send_redirects``
+  désactivé via ``IPv4SendRedirects=no`` dans les fichiers ``.network``
+  de systemd-networkd (évite les boucles de routage sur des nœuds qui ne
+  sont pas des routeurs réels)
 
 .. list-table::
    :header-rows: 1
@@ -74,11 +126,13 @@ Le rôle configure les éléments suivants sur chaque nœud :
    * - Paramètre sysctl
      - Valeur
    * - ``net.ipv4.ip_forward``
-     - ``1``
+     - ``1`` — tous les nœuds (requis CNI)
    * - ``net.bridge.bridge-nf-call-iptables``
      - ``1``
    * - ``net.bridge.bridge-nf-call-ip6tables``
      - ``1``
+   * - ``IPv4SendRedirects`` (networkd)
+     - ``no`` — br0 et VLANs
 
 ----
 
@@ -171,18 +225,38 @@ Le service est activé et démarré au boot.
 
 ----
 
-Exécution
----------
+mDNS (avahi-daemon)
+-------------------
 
-Une fois l'inventaire renseigné et la connectivité vérifiée, simuler
-le playbook pour contrôler les changements attendus :
+| Rôle : `roles/system/tasks/os.yml <https://github.com/iobewi/kubewi/blob/main/ansible/roles/system/tasks/os.yml>`_
+
+``avahi-daemon`` est installé et démarré sur tous les nœuds. Il publie le
+hostname de chaque machine sur le LAN local via mDNS (protocole ``_mdns._udp``).
+
+Cela permet de joindre le controller depuis le SDK par son nom d'hôte stable,
+indépendamment de son adresse DHCP sur ``eth0`` :
 
 .. code-block:: bash
 
+   ping controller-01.local
+   ssh iobewi@controller-01.local
+
+C'est le mécanisme utilisé par WireGuard pour résoudre l'endpoint du controller
+(variable ``controller_endpoint``). Voir :doc:`wireguard`.
+
+----
+
+Ré-application
+--------------
+
+Pour le premier run, utiliser ``playbooks/init.yml`` (voir :ref:`premier-run`
+ci-dessus).
+
+Pour ré-appliquer la configuration système après une modification
+(tunnel WireGuard actif) :
+
+.. code-block:: bash
+
+   make vpn-up
    ansible-playbook -i inventory/hosts.yml playbooks/system.yml --check --diff
-
-Puis appliquer :
-
-.. code-block:: bash
-
    ansible-playbook -i inventory/hosts.yml playbooks/system.yml

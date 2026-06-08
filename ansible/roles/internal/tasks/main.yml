@@ -1,0 +1,13 @@
+- name: Deploy VLAN 220 network with default route
+  ansible.builtin.template:
+    src: vlan-kube.network.j2
+    dest: /etc/systemd/network/40-{{ network_bridge_name }}.220.network
+    mode: "0644"
+  notify: restart systemd-networkd
+
+- name: Set cluster DNS in resolv.conf
+  ansible.builtin.copy:
+    content: "nameserver {{ network_cluster_dns }}\n"
+    dest: /etc/resolv.conf
+    mode: "0644"
+  when: network_cluster_dns is defined

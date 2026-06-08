@@ -1,0 +1,38 @@
+ansible_become: true
+ansible_become_method: sudo
+
+timezone: Europe/Paris
+
+ntp_servers:
+  - 0.fr.pool.ntp.org
+  - 1.fr.pool.ntp.org
+  - 2.fr.pool.ntp.org
+
+network_bridge_name: br0
+network_cluster_dns: "192.168.22.1"    # controller br0.220 — forwardeur DNS pour les workers
+
+# Identifiant du nœud = dernier octet de l'IP VLAN 220
+# À surcharger explicitement dans hosts.yml pour les controllers (ansible_host = IP WireGuard)
+host_id: "{{ ansible_host.split('.')[-1] }}"
+
+network_vlan_ips:
+  "220": "192.168.22.{{ host_id }}/24"
+  "420": "192.168.42.{{ host_id }}/24"
+  "620": "192.168.62.{{ host_id }}/24"
+
+network_vlans:
+  - id: 220
+    name: kube
+    subnet: 192.168.22.0/24
+    gateway: "192.168.22.1"
+  - id: 420
+    name: data
+    subnet: 192.168.42.0/24
+  - id: 620
+    name: ros
+    subnet: 192.168.62.0/24
+
+registry_address: "192.168.42.1:5000"
+
+network_provisioning_dhcp_range: "192.168.0.100,192.168.0.200"
+network_provisioning_lease_time: "1h"

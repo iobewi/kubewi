@@ -1,12 +1,21 @@
-- name: Set hostname
-  ansible.builtin.hostname:
-    name: "{{ inventory_hostname }}"
+- name: Disable cloud-init completely
+  ansible.builtin.file:
+    path: /etc/cloud/cloud-init.disabled
+    state: touch
+    mode: "0644"
+    modification_time: preserve
+    access_time: preserve
+  ignore_errors: true
 
 - name: Update /etc/hosts
   ansible.builtin.lineinfile:
     path: /etc/hosts
     regexp: '^127\.0\.1\.1'
     line: "127.0.1.1 {{ inventory_hostname }}"
+
+- name: Set hostname
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
 
 - name: Set timezone
   community.general.timezone:
@@ -22,16 +31,60 @@
     name: "{{ system_packages }}"
     state: present
 
-- name: Disable swap (runtime)
-  ansible.builtin.command: swapoff -a
-  when: ansible_swaptotal_mb > 0
-  changed_when: ansible_swaptotal_mb > 0
+- name: Generate locales
+  community.general.locale_gen:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ system_locales }}"
 
-- name: Disable swap (persistent)
+- name: Enable and start avahi-daemon
+  ansible.builtin.systemd:
+    name: avahi-daemon
+    enabled: true
+    state: started
+
+- name: Enable cgroup memory on RPi bootloader
+  ansible.builtin.replace:
+    path: "{{ item }}"
+    regexp: '(^(?!.*cgroup_enable=memory).+)$'
+    replace: '\1 cgroup_memory=1 cgroup_enable=memory'
+  loop:
+    - /boot/firmware/cmdline.txt
+    - /boot/cmdline.txt
+  ignore_errors: true
+  register: cgroup_boot
+  when: ansible_architecture == 'aarch64'
+
+- name: Reboot if cgroup cmdline changed
+  ansible.builtin.reboot:
+    reboot_timeout: 120
+  when:
+    - ansible_architecture == 'aarch64'
+    - cgroup_boot.results | selectattr('changed', 'equalto', true) | list | length > 0
+
+- name: Check active swap
+  ansible.builtin.command: cat /proc/swaps
+  register: swap_active
+  changed_when: false
+
+- name: Disable zram swap device (Trixie)
+  ansible.builtin.command: swapoff /dev/zram0
+  when: "'/dev/zram0' in swap_active.stdout"
+  changed_when: "'/dev/zram0' in swap_active.stdout"
+
+- name: Mask zram swap unit (Trixie)
+  ansible.builtin.systemd:
+    name: systemd-zram-setup@zram0
+    masked: true
+    daemon_reload: true
+  when: ansible_architecture == 'aarch64'
+
+- name: Disable swap (persistent — fstab)
   ansible.builtin.replace:
     path: /etc/fstab
     regexp: '^([^#].*?\sswap\s+\S+\s+.*)$'
     replace: '# \1'
+
 
 - name: Load kernel modules
   community.general.modprobe:

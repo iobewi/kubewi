@@ -140,31 +140,46 @@ Chaque section de provisioning documente le rôle qui la met en œuvre.
 Inventory
 ---------
 
-L'inventory déclare les nœuds du cluster, leurs adresses, leurs
-groupes et les variables associées. Le fichier principal est
-``inventory/hosts.yml``.
+L'inventory déclare les nœuds du cluster, leurs adresses, leurs groupes
+et les variables associées. Le fichier principal est ``inventory/hosts.yml``,
+généré depuis ``inventory/hosts.yml.example`` (non versionné) via :
 
-Les nœuds sont organisés en deux groupes :
+.. code-block:: bash
+
+   make ansible-init
+
+Les nœuds sont organisés en hiérarchie de groupes reflétant les responsabilités :
 
 .. code-block:: yaml
 
    all:
      children:
-       controllers:
-         hosts:
-           controller-01:
-             ansible_host: 192.168.x.x
-             ansible_user: <user>
-       workers:
-         hosts:
-           worker-motion-01:
-             ansible_host: 192.168.x.x
-             ansible_user: <user>
+       kubernetes:           # tous les nœuds k0s
+         children:
+           controllers:
+             children:
+               gateways:    # controller + exposition externe + WireGuard
+           workers:
 
-Les variables communes à tous les nœuds sont déclarées dans
-``inventory/group_vars/all.yml`` (timezone, NTP, become). Les variables
-propres à un groupe sont dans ``group_vars/controllers.yml`` et
-``group_vars/workers.yml``.
+Cette hiérarchie garantit que toute modification d'un rôle commun
+(installation k0s, version, CIDRs) se propage sur controllers et workers.
+
+Les variables sont réparties selon leur périmètre :
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Fichier
+     - Contenu
+   * - ``group_vars/all.yml``
+     - Variables système communes (timezone, NTP, VLANs, become)
+   * - ``group_vars/kubernetes.yml``
+     - Variables k0s communes (version, CIDRs, Cilium)
+   * - ``group_vars/vault.yml``
+     - Secrets chiffrés (WiFi, clés WireGuard)
+   * - ``hosts.yml``
+     - Variables spécifiques à chaque nœud (IPs, interfaces, clés publiques)
 
 Le nom déclaré dans l'inventory (``controller-01``, ``worker-motion-01``)
 est utilisé par Ansible comme hostname du nœud lors du provisioning.
@@ -185,15 +200,27 @@ KubeWI fournit les playbooks suivants :
 
    * - Playbook
      - Usage
-   * - ``playbooks/bootstrap.yml``
-     - Déploiement de la clé SSH et du sudo sans mot de passe.
-
-       À exécuter une seule fois par nœud.
+   * - ``playbooks/init.yml``
+     - Premier run : bootstrap + system + network + WireGuard sur le gateway,
+       via l'IP DHCP eth0 (avant que le tunnel VPN soit disponible).
+   * - ``playbooks/gateway.yml``
+     - Réseau externe et WireGuard sur les gateways uniquement.
    * - ``playbooks/system.yml``
      - Configuration système de base sur tous les nœuds
        (OS, SSH, chrony, containerd).
-   * - ``playbooks/site.yml``
-     - Provisioning complet (système + réseau).
+   * - ``playbooks/network.yml``
+     - Configuration réseau (bridge, VLANs, WiFi).
+   * - ``playbooks/controller.yml``
+     - Bootstrap k0s controller.
+   * - ``playbooks/workers-init.yml``
+     - Premier run worker : bootstrap SSH + system + réseau via IP provisioning
+       (``init_host``). À lancer après ``make provisioning-on``.
+   * - ``playbooks/worker.yml``
+     - Bootstrap k0s worker (après ``workers-init.yml``).
+   * - ``playbooks/wireguard.yml``
+     - Déploiement WireGuard sur les gateways.
+   * - ``playbooks/stack.yml``
+     - Provisioning complet enchaîné.
 
 Un playbook est un fichier YAML minimal qui déclare les hôtes ciblés
 et les rôles à appliquer :

@@ -1,0 +1,6 @@
+- name: Gateway provisioning
+  hosts: gateways
+  roles:
+    - network
+    - gateway
+    - wireguard

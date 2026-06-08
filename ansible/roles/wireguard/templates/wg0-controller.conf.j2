@@ -1,0 +1,11 @@
+[Interface]
+Address = {{ wireguard_controller_ip }}/24
+ListenPort = {{ wireguard_port }}
+PrivateKey = {{ vault_wg_controller_private_key }}
+PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -s {{ wireguard_sdk_ip }}/32 ! -o %i -j MASQUERADE
+PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -s {{ wireguard_sdk_ip }}/32 ! -o %i -j MASQUERADE
+
+[Peer]
+# SDK
+PublicKey = {{ wg_sdk_pubkey }}
+AllowedIPs = {{ wireguard_sdk_ip }}/32

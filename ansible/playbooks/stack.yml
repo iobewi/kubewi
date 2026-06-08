@@ -1,0 +1,23 @@
+- name: System provisioning
+  hosts: all
+  roles:
+    - system
+
+- name: Gateway provisioning
+  hosts: gateways
+  roles:
+    - network
+    - gateway
+    - wireguard
+
+- name: Controller provisioning
+  hosts: controllers:!gateways
+  roles:
+    - network
+    - internal
+
+- name: Worker provisioning
+  hosts: workers
+  roles:
+    - network
+    - internal

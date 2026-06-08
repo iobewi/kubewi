@@ -1,3 +1,12 @@
-- ansible.builtin.import_tasks: install.yml
-- ansible.builtin.import_tasks: token.yml
-- ansible.builtin.import_tasks: service.yml
+- name: Install k0s binary
+  ansible.builtin.include_role:
+    name: k0s_install
+
+- name: Configure container registry
+  ansible.builtin.import_tasks: registry_config.yml
+
+- name: Retrieve controller join token
+  ansible.builtin.import_tasks: token.yml
+
+- name: Configure k0s service
+  ansible.builtin.import_tasks: service.yml

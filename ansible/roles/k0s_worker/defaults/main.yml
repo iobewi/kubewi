@@ -1,2 +1,1 @@
-k0s_install_dir: /usr/local/bin
-k0s_config_dir: /etc/k0s
+k0s_role: worker

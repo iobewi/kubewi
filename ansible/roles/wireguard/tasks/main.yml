@@ -1,0 +1,8 @@
+- name: Install WireGuard
+  ansible.builtin.apt:
+    name: wireguard
+    state: present
+    update_cache: true
+
+- ansible.builtin.import_tasks: controller.yml
+- ansible.builtin.import_tasks: sdk_config.yml

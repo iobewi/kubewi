@@ -1,0 +1,57 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: registry
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry
+  namespace: registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: registry
+  template:
+    metadata:
+      labels:
+        app: registry
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: registry
+          image: {{ registry_image }}
+          env:
+            - name: REGISTRY_HTTP_ADDR
+              value: "0.0.0.0:{{ registry_port }}"
+            - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
+              value: "{{ registry_data_dir }}"
+          volumeMounts:
+            - name: data
+              mountPath: "{{ registry_data_dir }}"
+      volumes:
+        - name: data
+          hostPath:
+            path: "{{ registry_data_dir }}"
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: registry
+  namespace: registry
+spec:
+  selector:
+    app: registry
+  ports:
+    - name: registry
+      port: {{ registry_port }}
+      targetPort: {{ registry_port }}

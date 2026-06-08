@@ -1,0 +1,12 @@
+# Endpoint mDNS du controller sur le LAN — dérivé du hostname Ansible
+# Surcharger dans hosts.yml si le nom diffère (ex: IP fixe, DDNS)
+controller_endpoint: "{{ inventory_hostname }}.local"
+
+wireguard_interface: wg0
+wireguard_port: 51820
+wireguard_controller_ip: 10.0.100.1
+wireguard_sdk_ip: 10.0.100.2
+wireguard_allowed_vlans:
+  - 192.168.22.0/24
+  - 192.168.42.0/24
+  - 192.168.62.0/24

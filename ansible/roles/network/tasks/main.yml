@@ -1,3 +1,20 @@
+# Désactiver les services réseau alternatifs qui conflictent avec systemd-networkd
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+- name: Stop and disable conflicting network services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  loop:
+    - dhcpcd
+    - networking
+    - NetworkManager
+  when:
+    - (item ~ '.service') in ansible_facts.services
+    - ansible_facts.services[item ~ '.service']['state'] == 'running'
+
 - ansible.builtin.import_tasks: bridge.yml
 - ansible.builtin.import_tasks: vlans.yml
 - ansible.builtin.import_tasks: wifi.yml

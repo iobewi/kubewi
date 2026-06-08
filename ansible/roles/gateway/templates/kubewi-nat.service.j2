@@ -1,0 +1,13 @@
+[Unit]
+Description=KubeWI cluster NAT masquerade
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/iptables -t nat -A POSTROUTING -o {{ network_external_iface }} -j MASQUERADE
+ExecStop=/usr/sbin/iptables -t nat -D POSTROUTING -o {{ network_external_iface }} -j MASQUERADE
+
+[Install]
+WantedBy=multi-user.target

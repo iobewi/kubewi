@@ -48,6 +48,13 @@ settings.local.json
 # Claude Code
 .claude/
 
+# Ansible — fichiers locaux (valeurs réelles, non versionnés)
+ansible/inventory/hosts.yml
+ansible/inventory/group_vars/all/vault.yml
+
+# cloud-init — fichiers générés localement (contiennent des secrets)
+cloud-init/cidata.iso
+
 # Documentation
 site/
 docs/_build/

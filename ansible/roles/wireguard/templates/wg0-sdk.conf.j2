@@ -1,0 +1,11 @@
+[Interface]
+Address = {{ wireguard_sdk_ip }}/24
+PrivateKey = {{ vault_wg_sdk_private_key }}
+
+[Peer]
+# controller-01
+PublicKey = {{ wg_controller_pubkey }}
+Endpoint = {{ controller_endpoint }}:{{ wireguard_port }}
+AllowedIPs = 10.0.100.0/24{% for vlan in wireguard_allowed_vlans %}, {{ vlan }}{% endfor %}
+
+PersistentKeepalive = 25

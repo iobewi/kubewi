@@ -1,0 +1,41 @@
+- name: Bootstrap gateway (SSH key + sudo)
+  hosts: gateways
+  gather_facts: false
+  vars:
+    ansible_host: "{{ init_host }}"
+  tasks:
+    - name: Deploy authorized key
+      ansible.posix.authorized_key:
+        user: "{{ ansible_user }}"
+        key: "{{ lookup('file', '~/.ssh/kubewi_ansible.pub') }}"
+        state: present
+
+    - name: Configure passwordless sudo
+      ansible.builtin.copy:
+        content: "{{ ansible_user }} ALL=(ALL) NOPASSWD: ALL\n"
+        dest: "/etc/sudoers.d/{{ ansible_user }}-nopasswd"
+        mode: "0440"
+        validate: /usr/sbin/visudo -cf %s
+      become: true
+
+- name: System provisioning
+  hosts: gateways
+  vars:
+    ansible_host: "{{ init_host }}"
+  roles:
+    - system
+
+- name: Network provisioning
+  hosts: gateways
+  vars:
+    ansible_host: "{{ init_host }}"
+  roles:
+    - network
+
+- name: WireGuard provisioning
+  hosts: gateways
+  vars:
+    ansible_host: "{{ init_host }}"
+  roles:
+    - role: wireguard
+      when: wg_controller_pubkey | default('') != ''

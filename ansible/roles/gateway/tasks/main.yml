@@ -1,0 +1,34 @@
+- name: Deploy routed VLAN networks (gateway — adresse seule, pas de route par défaut)
+  ansible.builtin.template:
+    src: vlan.network.j2
+    dest: /etc/systemd/network/40-{{ network_bridge_name }}.{{ item.id }}.network
+    mode: "0644"
+  loop: "{{ network_vlans | selectattr('gateway', 'defined') | list }}"
+  notify: restart systemd-networkd
+
+- name: Deploy external interface (DHCP)
+  ansible.builtin.template:
+    src: external.network.j2
+    dest: /etc/systemd/network/05-{{ network_external_iface }}.network
+    mode: "0644"
+  notify: restart systemd-networkd
+
+- name: Deploy cluster NAT service
+  ansible.builtin.template:
+    src: kubewi-nat.service.j2
+    dest: /etc/systemd/system/kubewi-nat.service
+    mode: "0644"
+  notify: reload and start kubewi-nat
+
+- name: Enable cluster NAT service
+  ansible.builtin.systemd:
+    name: kubewi-nat
+    enabled: true
+    daemon_reload: true
+
+- name: Configure systemd-resolved to listen on VLAN 220
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/resolved.conf
+    regexp: '^#?DNSStubListenerExtra='
+    line: "DNSStubListenerExtra={{ network_cluster_dns }}"
+  notify: restart systemd-resolved

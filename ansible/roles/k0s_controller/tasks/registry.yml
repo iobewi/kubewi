@@ -1,0 +1,23 @@
+- name: Create k0s static manifests directory for registry
+  ansible.builtin.file:
+    path: /var/lib/k0s/manifests/registry
+    state: directory
+    mode: "0755"
+
+- name: Deploy registry static manifest
+  ansible.builtin.template:
+    src: registry.yaml.j2
+    dest: /var/lib/k0s/manifests/registry/registry.yaml
+    mode: "0644"
+
+- name: Create k0s containerd drop-in directory
+  ansible.builtin.file:
+    path: "{{ k0s_config_dir }}/containerd.d"
+    state: directory
+    mode: "0755"
+
+- name: Configure containerd insecure registry
+  ansible.builtin.template:
+    src: containerd-registry.toml.j2
+    dest: "{{ k0s_config_dir }}/containerd.d/registry.toml"
+    mode: "0644"

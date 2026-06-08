@@ -1,11 +1,17 @@
 system_timezone: "{{ timezone | default('Europe/Paris') }}"
 
 system_packages:
+  - avahi-daemon
   - curl
   - vim
   - ca-certificates
   - apt-transport-https
   - gnupg
+  - locales
+  - net-tools
+
+system_locales:
+  - en_US.UTF-8
 
 ssh_port: 22
 ssh_permit_root_login: "no"

@@ -1,4 +1,14 @@
-- name: Network provisioning
+- name: Network provisioning — tronc commun
   hosts: all
   roles:
     - network
+
+- name: Network provisioning — gateway
+  hosts: gateways
+  roles:
+    - gateway
+
+- name: Network provisioning — internal nodes
+  hosts: all:!gateways
+  roles:
+    - internal

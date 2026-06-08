@@ -1,0 +1,5 @@
+- name: WireGuard VPN provisioning
+  hosts: controllers
+  roles:
+    - role: wireguard
+      when: wg_controller_pubkey | default('') != ''
