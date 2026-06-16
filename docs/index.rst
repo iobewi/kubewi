@@ -96,10 +96,15 @@ Cas d'usage visés
 
    getting-started
    architecture/overview
+   reference/glossary
+
+.. toctree::
+   :hidden:
+   :caption: Développement
+
    reference/packages
    reference/package-template
    reference/tests
-   reference/glossary
 
 .. toctree::
    :hidden:
