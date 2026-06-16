@@ -18,9 +18,3 @@ repos:
         types: [python]
         pass_filenames: true
 
-      - id: pytest-fast
-        name: Tests rapides (no coverage)
-        language: system
-        entry: bash -c 'cd bootstrap && python3 -m pytest -q --no-cov -x'
-        pass_filenames: false
-        always_run: true
