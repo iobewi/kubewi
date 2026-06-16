@@ -10,3 +10,9 @@
   async: 1
   poll: 0
   ignore_errors: true
+
+- name: reload and start kubewi-wifi-forward
+  ansible.builtin.systemd:
+    name: kubewi-wifi-forward
+    state: restarted
+    daemon_reload: true

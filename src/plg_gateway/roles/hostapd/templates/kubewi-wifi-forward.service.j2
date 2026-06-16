@@ -1,0 +1,16 @@
+[Unit]
+Description=KubeWI WiFi AP — forwarding inter-VLAN ({{ wifi_ap.bridge }} vers VLANs internes)
+After=network-online.target kubewi-nat.service
+Wants=network-online.target
+Requires=kubewi-nat.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/iptables -A FORWARD -i {{ wifi_ap.bridge }} -j ACCEPT
+ExecStart=/usr/sbin/iptables -A FORWARD -o {{ wifi_ap.bridge }} -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+ExecStop=/usr/sbin/iptables -D FORWARD -i {{ wifi_ap.bridge }} -j ACCEPT
+ExecStop=/usr/sbin/iptables -D FORWARD -o {{ wifi_ap.bridge }} -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+[Install]
+WantedBy=multi-user.target
