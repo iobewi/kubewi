@@ -104,9 +104,58 @@ Couches
 
 **Rôle** ``hostapd``
    - Installe ``hostapd``
-   - Crée le bridge ``br-wifi`` entre ``br0.220`` (VLAN 220) et ``wlan0``
+   - Crée le bridge ``br-wifi`` et y attache ``br0.220`` comme slave
+   - Configure ``wlan0`` comme interface hostapd avec ``bridge=br-wifi``
    - Déploie ``/etc/hostapd/hostapd.conf``
    - Active et démarre le service
+
+----
+
+Bridge WiFi — architecture L2
+-------------------------------
+
+Sans WiFi AP, ``br0.220`` porte directement l'IP du VLAN 220 :
+
+.. code-block:: text
+
+   br0 ──── br0.220  (IP 192.168.22.1/24)
+              ↑
+           VLAN 220 (802.1Q tag)
+
+Avec ``wifi_ap`` défini, ``br0.220`` devient slave de ``br-wifi``.
+C'est ``br-wifi`` qui porte l'IP. ``wlan0`` est ajouté automatiquement
+au bridge par hostapd lors de l'association d'un client :
+
+.. code-block:: text
+
+   br0 ──── br0.220 ──► slave de br-wifi (IP 192.168.22.1/24)
+                                │
+                           br-wifi ◄── wlan0 (hostapd, access port)
+                                │
+                         clients WiFi
+                      (VLAN 220, L2 pur)
+
+Les clients WiFi arrivent directement sur le VLAN 220 — même segment L2
+que les nœuds filaires. Il n'y a pas de NAT, pas de routage supplémentaire,
+pas de sous-réseau dédié WiFi. Un client WiFi et un worker Ethernet
+partagent le même ``192.168.22.0/24``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Interface
+     - Rôle avec WiFi AP
+   * - ``br0.220``
+     - Slave du bridge ``br-wifi`` (plus d'IP directe)
+   * - ``br-wifi``
+     - Porte l'IP ``192.168.22.1/24`` — bridge L2 VLAN 220 ↔ WiFi
+   * - ``wlan0``
+     - Access port géré par hostapd (``bridge=br-wifi`` dans hostapd.conf)
+
+Ce choix (bridge L2 plutôt que routage ou NAT WiFi) permet aux workloads
+ROS 2 et aux outils kubewi de joindre les nœuds sans configuration réseau
+supplémentaire depuis le WiFi.
 
 ----
 
