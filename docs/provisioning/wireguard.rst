@@ -32,7 +32,7 @@ Architecture
 
 Le controller est joignable sur le LAN via mDNS (``controller-01.local``),
 ce qui le rend stable même avec une adresse DHCP changeante. ``avahi-daemon``
-doit être actif sur le controller — c'est garanti par le rôle ``system``.
+doit être actif sur le controller — c'est garanti par le rôle ``debian``.
 
 Les workers ne sont pas exposés directement au SDK. Ansible les atteint via
 un ProxyJump SSH sur le controller (configuré dans ``inventory/hosts.yml``).
@@ -53,11 +53,11 @@ un ProxyJump SSH sur le controller (configuré dans ``inventory/hosts.yml``).
 
 ----
 
-Rôle Ansible
-------------
+Engine Ansible
+--------------
 
-| Rôle : `roles/wireguard <https://github.com/iobewi/kubewi/blob/main/ansible/roles/wireguard>`_
-| Playbook : `playbooks/wireguard.yml <https://github.com/iobewi/kubewi/blob/main/ansible/playbooks/wireguard.yml>`_
+| Rôle : `src/eng_wireguard/roles/wireguard <https://github.com/iobewi/kubewi/blob/main/src/eng_wireguard/roles/wireguard>`_
+| Playbook : `src/eng_wireguard/playbooks/wireguard.yml <https://github.com/iobewi/kubewi/blob/main/src/eng_wireguard/playbooks/wireguard.yml>`_
 
 Le rôle s'applique uniquement aux controllers. Il effectue :
 
@@ -65,7 +65,7 @@ Le rôle s'applique uniquement aux controllers. Il effectue :
 - activation de l'IP forwarding (``net.ipv4.ip_forward``) ;
 - déploiement de ``/etc/wireguard/wg0.conf`` depuis le template ;
 - activation du service ``wg-quick@wg0`` au démarrage ;
-- génération de la configuration cliente SDK en local (``wireguard/wg0-sdk.conf``).
+- génération de la configuration cliente SDK en local (``work/wg0-sdk.conf``).
 
 .. list-table::
    :header-rows: 1
@@ -92,7 +92,7 @@ l'inventaire et le vault via :
 
 .. code-block:: bash
 
-   make ansible-wireguard-keys
+   kubewi ansible wireguard-keys
 
 Cette commande génère deux paires de clés (controller et SDK), injecte
 les **clés publiques** dans ``inventory/hosts.yml`` et les **clés privées**
@@ -102,7 +102,7 @@ Chiffrer le vault après injection :
 
 .. code-block:: bash
 
-   make ansible-vault-encrypt
+   kubewi ansible vault-encrypt
 
 ----
 
@@ -110,17 +110,17 @@ Déploiement
 -----------
 
 WireGuard est déployé automatiquement lors de l'initialisation du controller
-via ``playbooks/init.yml`` (voir :doc:`system`). Il n'est pas nécessaire de
-l'exécuter manuellement lors du premier run.
+(voir :doc:`system`). Il n'est pas nécessaire de l'exécuter manuellement
+lors du premier run.
 
 Pour redéployer uniquement WireGuard sur un controller déjà accessible via
 le tunnel :
 
 .. code-block:: bash
 
-   ansible-playbook -i inventory/hosts.yml playbooks/wireguard.yml --ask-vault-pass
+   kubewi vpn deploy
 
-Le playbook régénère ``wireguard/wg0-sdk.conf`` à chaque exécution.
+Le playbook régénère ``work/wg0-sdk.conf`` à chaque exécution.
 
 ----
 
@@ -130,25 +130,25 @@ Connexion au serveur
 Activer le tunnel depuis le SDK
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Le fichier ``wireguard/wg0-sdk.conf`` est généré localement par Ansible
-lors du provisioning. Le tunnel se monte directement depuis ce fichier
-sans copie dans ``/etc`` :
+Le fichier ``work/wg0-sdk.conf`` est généré localement par Ansible
+lors du provisioning. Il est gitignored (contient la clé privée SDK).
+Le tunnel se monte directement depuis ce fichier sans copie dans ``/etc`` :
 
 .. code-block:: bash
 
-   make vpn-up
+   kubewi vpn up
 
 Pour couper le tunnel :
 
 .. code-block:: bash
 
-   make vpn-down
+   kubewi vpn down
 
 Vérifier que le tunnel est établi :
 
 .. code-block:: bash
 
-   wg show wireguard/wg0-sdk.conf
+   wg show work/wg0-sdk.conf
 
 La sortie doit afficher le peer ``controller-01`` avec un ``latest handshake``
 récent et des octets échangés.
@@ -168,7 +168,7 @@ ou après rebuild du container SDK) :
 
 .. code-block:: bash
 
-   make ssh-config
+   kubewi ssh config
 
 Le controller est ensuite joignable par son nom :
 
@@ -179,7 +179,7 @@ Le controller est ensuite joignable par son nom :
 SSH vers un worker (via ProxyJump)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Les workers ne sont pas directement exposés. ``make ssh-config`` configure
+Les workers ne sont pas directement exposés. ``kubewi ssh config`` configure
 automatiquement un ProxyJump via le controller pour tout le sous-réseau
 ``192.168.22.*`` :
 
@@ -202,5 +202,5 @@ WireGuard et VLAN :
 
 .. code-block:: bash
 
-   ansible all -i inventory/hosts.yml -m ping
-   ansible-playbook -i inventory/hosts.yml playbooks/stack.yml
+   ansible all -i src/adp_ansible/inventory/hosts.yml -m ping
+   kubewi cluster stack

@@ -18,7 +18,7 @@ et de l'appliquer de façon cohérente sur un ou plusieurs nœuds distants.
 
 Dans le contexte KubeWI, Ansible prend en charge l'intégralité de la
 préparation des nœuds physiques : configuration système, réseau Linux,
-runtime conteneur et bootstrap Kubernetes. L'objectif est de pouvoir
+runtime conteneur et initialisation Kubernetes. L'objectif est de pouvoir
 (re)provisionner un nœud de façon fiable et reproductible, sans
 intervention manuelle.
 
@@ -100,43 +100,43 @@ modules builtin d'Ansible :
    * - ``community.general``
      - ``timezone``, ``modprobe``
 
-Les dépendances sont déclarées dans ``ansible/requirements.yml``.
+Les dépendances sont déclarées dans ``src/adp_ansible/requirements.yml``.
 Installer les collections avant le premier run :
 
 .. code-block:: bash
 
-   ansible-galaxy collection install -r requirements.yml
-
-Créer le squelette d'un nouveau rôle :
-
-.. code-block:: bash
-
-   ansible-galaxy role init roles/<nom-du-role>
+   kubewi ansible init   # crée l'inventaire, puis :
+   ansible-galaxy collection install -r src/adp_ansible/requirements.yml
 
 ----
 
 Structure du projet
 --------------------
 
-Le projet Ansible est organisé sous ``ansible/`` :
+La couche Ansible est répartie dans les paquets ``src/`` selon leur rôle
+sémantique. Le paquet ``adp_ansible`` porte l'inventaire et les outils
+communs ; chaque engine ou plugin porte ses propres playbooks et rôles :
 
 .. list-table::
    :header-rows: 1
-   :widths: 25 75
+   :widths: 35 65
 
-   * - Répertoire
-     - Contenu
-   * - ``inventory/``
-     - nœuds, groupes et variables par groupe
-   * - ``roles/``
-     - unités de configuration (une par périmètre fonctionnel)
-   * - ``playbooks/``
-     - points d'entrée qui associent des rôles à des groupes de nœuds
-   * - ``scripts/``
-     - scripts Python liés à Ansible : enrollment, kubeconfig, injection vault
-
-Les scripts SSH (``ssh_init.py``, ``ssh_config.py``) sont dans ``scripts/``
-à la racine du dépôt — ils ne sont pas spécifiques à Ansible.
+   * - Paquet
+     - Contenu Ansible
+   * - ``src/adp_ansible/``
+     - inventaire, vault, scripts (injection clés, WiFi, kubeconfig)
+   * - ``src/eng_k0s/``
+     - rôles et playbooks k0s (controller, worker, install)
+   * - ``src/eng_wireguard/``
+     - rôle et playbook WireGuard
+   * - ``src/eng_debian/``
+     - rôle système Debian (OS, SSH, chrony, containerd)
+   * - ``src/eng_rpios/``
+     - rôle Raspberry Pi OS (cgroups, zram swap)
+   * - ``src/ops_cluster/``
+     - playbooks de cycle de vie (init, network, system, stack)
+   * - ``src/plg_gateway/``
+     - rôles et playbooks gateway (NAT, VLANs, hostapd)
 
 Chaque section de provisioning documente le rôle qui la met en œuvre.
 
@@ -146,12 +146,13 @@ Inventory
 ---------
 
 L'inventory déclare les nœuds du cluster, leurs adresses, leurs groupes
-et les variables associées. Le fichier principal est ``inventory/hosts.yml``,
-généré depuis ``inventory/hosts.yml.example`` (non versionné) via :
+et les variables associées. Le fichier principal est
+``src/adp_ansible/inventory/hosts.yml``, non versionné.
+Il est généré depuis ``hosts.yml.example`` via :
 
 .. code-block:: bash
 
-   make ansible-init
+   kubewi ansible init
 
 Les nœuds sont organisés en hiérarchie de groupes reflétant les responsabilités :
 
@@ -173,17 +174,17 @@ Les variables sont réparties selon leur périmètre :
 
 .. list-table::
    :header-rows: 1
-   :widths: 35 65
+   :widths: 45 55
 
    * - Fichier
      - Contenu
-   * - ``group_vars/all/main.yml``
+   * - ``inventory/group_vars/all/main.yml``
      - Variables système communes (timezone, NTP, VLANs, become)
-   * - ``group_vars/kubernetes.yml``
+   * - ``inventory/group_vars/kubernetes.yml``
      - Variables k0s communes (version, CIDRs, Cilium)
-   * - ``group_vars/all/vault.yml``
+   * - ``inventory/group_vars/all/vault.yml``
      - Secrets chiffrés (WiFi, clés WireGuard)
-   * - ``hosts.yml``
+   * - ``inventory/hosts.yml``
      - Variables spécifiques à chaque nœud (IPs, interfaces, clés publiques)
 
 Le nom déclaré dans l'inventory (``controller-01``, ``worker-motion-01``)
@@ -197,35 +198,33 @@ Playbooks
 Un playbook associe un ou plusieurs rôles à un groupe de nœuds.
 C'est le point d'entrée de chaque opération Ansible.
 
-KubeWI fournit les playbooks suivants :
+KubeWI fournit les playbooks suivants, accessibles via la CLI ``kubewi`` :
 
 .. list-table::
    :header-rows: 1
-   :widths: 35 65
+   :widths: 40 60
 
-   * - Playbook
+   * - Commande kubewi
      - Usage
-   * - ``playbooks/init.yml``
-     - Premier run : bootstrap + system + network + WireGuard sur le gateway,
-       via l'IP DHCP eth0 (avant que le tunnel VPN soit disponible).
-   * - ``playbooks/gateway.yml``
-     - Réseau externe et WireGuard sur les gateways uniquement.
-   * - ``playbooks/system.yml``
+   * - ``kubewi cluster system``
      - Configuration système de base sur tous les nœuds
        (OS, SSH, chrony, containerd).
-   * - ``playbooks/network.yml``
+   * - ``kubewi cluster network``
      - Configuration réseau (bridge, VLANs, WiFi).
-   * - ``playbooks/controller.yml``
-     - Bootstrap k0s controller.
-   * - ``playbooks/workers-init.yml``
-     - Premier run worker : bootstrap SSH + system + réseau via IP provisioning
-       (``init_host``). À lancer après ``make provisioning-on``.
-   * - ``playbooks/worker.yml``
-     - Bootstrap k0s worker (après ``workers-init.yml``).
-   * - ``playbooks/wireguard.yml``
-     - Déploiement WireGuard sur les gateways.
-   * - ``playbooks/stack.yml``
+   * - ``kubewi cluster stack``
      - Provisioning complet enchaîné.
+   * - ``kubewi gateway deploy``
+     - Réseau externe, NAT et VLANs sur les gateways.
+   * - ``kubewi gateway wifi-deploy``
+     - Point d'accès WiFi hostapd sur le gateway.
+   * - ``kubewi k0s add controller``
+     - Initialise k0s sur le(s) controller(s).
+   * - ``kubewi enroll worker``
+     - Détecte et enrôle de nouveaux workers.
+   * - ``kubewi k0s add worker --name <nom>``
+     - Joint un worker spécifique au cluster k0s.
+   * - ``kubewi vpn deploy``
+     - Déploiement WireGuard sur les gateways.
 
 Un playbook est un fichier YAML minimal qui déclare les hôtes ciblés
 et les rôles à appliquer :
@@ -235,7 +234,7 @@ et les rôles à appliquer :
    - name: System base provisioning
      hosts: all
      roles:
-       - system
+       - debian
 
 ----
 
@@ -248,7 +247,8 @@ fichiers système). L'user de connexion SSH n'est pas root, Ansible
 utilise ``sudo`` pour escalader les privilèges via le mécanisme
 ``become``.
 
-Cette escalade est activée globalement dans ``inventory/group_vars/all.yml`` :
+Cette escalade est activée globalement dans
+``inventory/group_vars/all/main.yml`` :
 
 .. code-block:: yaml
 
@@ -267,14 +267,14 @@ présentent :
      - Commande
    * - ``sudo`` sans mot de passe
      - Ubuntu, Raspberry Pi OS, Jetson
-     - ``ansible-playbook playbooks/system.yml``
+     - ``kubewi cluster system``
    * - ``sudo`` avec mot de passe
      - Debian (selon install)
-     - ``ansible-playbook playbooks/system.yml --ask-become-pass``
+     - ``ansible-playbook ... --ask-become-pass``
 
 Sur un système fraîchement installé avec sudo protégé par mot de passe,
 Ansible demandera ce mot de passe **à chaque run**. Pour éviter cela,
-le playbook de bootstrap configure le sudo sans mot de passe en une
+la phase d'initialisation configure le sudo sans mot de passe en une
 opération unique (voir :doc:`system`).
 
 ----
@@ -291,20 +291,21 @@ opération (tunnel WireGuard requis) :
 
 .. code-block:: bash
 
-   make ssh-init
+   kubewi ssh init
 
 Elle génère la clé ``~/.ssh/kubewi_ansible`` si absente, configure
 ``~/.ssh/config``, puis pousse la clé publique sur tous les nœuds via
 mot de passe (un prompt par groupe — controllers, puis workers).
 
-Pour reconfigurer uniquement ``~/.ssh/config`` (après ``make vpn-up``) :
+Pour reconfigurer uniquement ``~/.ssh/config`` (après ``kubewi vpn up``) :
 
 .. code-block:: bash
 
-   make ssh-config
+   kubewi ssh config
 
-La clé privée est déclarée dans ``ansible.cfg`` via ``private_key_file``,
-Ansible l'utilisera automatiquement pour toutes les connexions.
+La clé privée est déclarée dans ``src/adp_ansible/ansible.cfg`` via
+``private_key_file``, Ansible l'utilisera automatiquement pour toutes
+les connexions.
 
 ----
 
@@ -313,25 +314,23 @@ Commandes de référence
 
 .. list-table::
    :header-rows: 1
-   :widths: 50 50
+   :widths: 55 45
 
    * - Commande
      - Usage
-   * - ``ansible all -i inventory/hosts.yml -m ping``
+   * - ``ansible all -i src/adp_ansible/inventory/hosts.yml -m ping``
      - tester la connectivité SSH vers tous les nœuds
-   * - ``ansible-playbook -i inventory/hosts.yml <playbook> --check --diff``
+   * - ``ansible-playbook -i src/adp_ansible/inventory/hosts.yml <playbook> --check --diff``
      - simuler sans appliquer
-   * - ``ansible-playbook -i inventory/hosts.yml <playbook>``
+   * - ``ansible-playbook -i src/adp_ansible/inventory/hosts.yml <playbook>``
      - appliquer la configuration
-   * - ``ansible-playbook -i inventory/hosts.yml <playbook> --limit <cible>``
+   * - ``ansible-playbook -i src/adp_ansible/inventory/hosts.yml <playbook> --limit <cible>``
      - cibler un nœud ou un groupe
-   * - ``ansible-playbook -i inventory/hosts.yml <playbook> -v``
+   * - ``ansible-playbook -i src/adp_ansible/inventory/hosts.yml <playbook> -v``
      - verbosité niveau 1 (tâches)
-   * - ``ansible-playbook -i inventory/hosts.yml <playbook> -vvv``
+   * - ``ansible-playbook -i src/adp_ansible/inventory/hosts.yml <playbook> -vvv``
      - verbosité niveau 3 (connexions SSH)
-   * - ``ansible-inventory -i inventory/hosts.yml --list``
+   * - ``ansible-inventory -i src/adp_ansible/inventory/hosts.yml --list``
      - afficher l'inventaire résolu
-   * - ``ansible-galaxy collection install -r requirements.yml``
+   * - ``ansible-galaxy collection install -r src/adp_ansible/requirements.yml``
      - installer les collections requises
-   * - ``ansible-galaxy role init roles/<nom>``
-     - créer le squelette d'un nouveau rôle
