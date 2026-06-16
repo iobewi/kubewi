@@ -12,3 +12,4 @@ de haut niveau.
    packages/plg_provisioning/index
    packages/plg_gateway/index
    packages/plg_vpn/index
+   packages/plg_embewi/index

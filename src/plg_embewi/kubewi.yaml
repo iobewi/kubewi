@@ -1,0 +1,10 @@
+name: plg_embewi
+type: plugin
+description: >
+  Déploie embewi-core — le controller Kubernetes pour les microcontrôleurs ESP32.
+  Installe les CRDs McuNode et McuDeployment, le Deployment du controller
+  et son RBAC. Prérequis : plg_gateway avec wifi_ap (VLAN 220).
+deps:
+  - adp_kube
+provides:
+  - mcu-orchestration
