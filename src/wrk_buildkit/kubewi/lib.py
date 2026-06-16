@@ -8,7 +8,7 @@ from kubewi._utils import run
 
 _PKG_DIR        = Path(__file__).parent.parent
 _BUILDKITD_TOML = _PKG_DIR / 'buildkitd.toml'
-_HADOLINT_CFG   = _PKG_DIR.parent.parent / '.hadolint.yaml'   # workspace root
+_HADOLINT_CFG   = _PKG_DIR / 'hadolint.yaml'
 
 
 def builder() -> str:
