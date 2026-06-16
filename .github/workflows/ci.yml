@@ -3,14 +3,40 @@ name: CI
 on:
   push:
     branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "requirements-test.txt"
+      - ".github/workflows/ci.yml"
   pull_request:
     branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "requirements-test.txt"
 
-# Tests Python à réimplémenter pour la structure src/ kubewi
-# bootstrap/ supprimé — ce workflow est désactivé jusqu'à réécriture
 jobs:
-  placeholder:
-    name: CI (placeholder)
+  test:
+    name: Tests (${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
     steps:
-      - run: echo "CI à implémenter pour src/kubewi"
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements-test.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-test.txt
+
+      - name: Run tests
+        run: python3 -m pytest tests/ -v --tb=short
