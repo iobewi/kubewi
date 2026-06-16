@@ -98,6 +98,7 @@ Cas d'usage visés
    architecture/overview
    reference/packages
    reference/package-template
+   reference/tests
    reference/glossary
 
 .. toctree::
