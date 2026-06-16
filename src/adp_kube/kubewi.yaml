@@ -1,0 +1,3 @@
+name: adp_kube
+type: adapter
+description: Adaptateur kubectl — wrapper pour les commandes Kubernetes

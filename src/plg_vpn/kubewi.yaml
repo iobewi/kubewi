@@ -1,0 +1,6 @@
+name: plg_vpn
+type: plugin
+description: Tunnel VPN SDK ↔ cluster — lifecycle wg-quick et génération des clés
+deps:
+  - adp_ansible
+  - eng_wireguard

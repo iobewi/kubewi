@@ -1,0 +1,24 @@
+interface={{ wifi_ap.iface }}
+bridge={{ wifi_ap.bridge }}
+driver=nl80211
+
+country_code={{ wifi_ap.country | default('FR') }}
+ieee80211d=1
+
+ssid={{ wifi_ap.ssid }}
+hw_mode={{ wifi_ap.hw_mode | default('g') }}
+channel={{ wifi_ap.channel | default(6) }}
+
+ieee80211n=1
+wmm_enabled=1
+
+auth_algs=1
+wpa=2
+wpa_passphrase={{ wifi_ap.passphrase }}
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=CCMP
+rsn_pairwise=CCMP
+
+beacon_int=100
+dtim_period=2
+max_num_sta={{ wifi_ap.max_stations | default(20) }}

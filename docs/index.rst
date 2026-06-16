@@ -95,4 +95,5 @@ Cas d'usage visés
 
    architecture/overview
    provisioning/bare-metal
+   reference/packages
    reference/glossary

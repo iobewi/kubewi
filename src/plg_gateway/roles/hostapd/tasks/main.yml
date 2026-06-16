@@ -1,0 +1,44 @@
+- name: Install hostapd
+  ansible.builtin.apt:
+    name: hostapd
+    state: present
+
+- name: Unmask hostapd service
+  ansible.builtin.systemd:
+    name: hostapd
+    masked: false
+
+- name: Deploy hostapd configuration
+  ansible.builtin.template:
+    src: hostapd.conf.j2
+    dest: /etc/hostapd/hostapd.conf
+    mode: "0600"
+  notify: restart hostapd
+
+- name: Deploy br-wifi netdev
+  ansible.builtin.template:
+    src: br-wifi.netdev.j2
+    dest: /etc/systemd/network/35-{{ wifi_ap.bridge }}.netdev
+    mode: "0644"
+  notify: restart systemd-networkd
+
+- name: Deploy br-wifi network (IP du VLAN {{ wifi_ap.vlan_id }})
+  ansible.builtin.template:
+    src: br-wifi.network.j2
+    dest: /etc/systemd/network/35-{{ wifi_ap.bridge }}.network
+    mode: "0644"
+  notify: restart systemd-networkd
+
+- name: Deploy wlan0 bridge membership
+  ansible.builtin.template:
+    src: wlan0.network.j2
+    dest: /etc/systemd/network/50-{{ wifi_ap.iface }}.network
+    mode: "0644"
+  notify: restart systemd-networkd
+
+- name: Enable and start hostapd
+  ansible.builtin.systemd:
+    name: hostapd
+    enabled: true
+    state: started
+    daemon_reload: true

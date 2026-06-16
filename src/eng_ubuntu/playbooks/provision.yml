@@ -1,0 +1,4 @@
+- name: Ubuntu base provisioning
+  hosts: all
+  roles:
+    - ubuntu

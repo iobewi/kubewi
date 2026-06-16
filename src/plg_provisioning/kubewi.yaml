@@ -1,0 +1,5 @@
+name: plg_provisioning
+type: plugin
+description: Réseau DHCP de provisioning + cloud-init pour l'enrollment
+deps:
+  - adp_kube

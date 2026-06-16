@@ -87,46 +87,22 @@ Le rôle s'applique uniquement aux controllers. Il effectue :
 Préparation des clés
 --------------------
 
-Les clés WireGuard doivent être générées avant le premier run Ansible.
-Exécuter sur le controller (ou localement) :
+Les clés WireGuard sont générées et injectées automatiquement dans
+l'inventaire et le vault via :
 
 .. code-block:: bash
 
-   # Clés du controller
-   wg genkey | tee controller.key | wg pubkey > controller.pub
+   make ansible-wireguard-keys
 
-   # Clés du SDK
-   wg genkey | tee sdk.key | wg pubkey > sdk.pub
+Cette commande génère deux paires de clés (controller et SDK), injecte
+les **clés publiques** dans ``inventory/hosts.yml`` et les **clés privées**
+dans ``inventory/group_vars/all/vault.yml``.
 
-Renseigner ensuite les valeurs dans l'inventaire :
-
-**``inventory/host_vars/controller-01.yml``** — clés publiques WireGuard :
-
-.. code-block:: yaml
-
-   wg_controller_pubkey: "<contenu de controller.pub>"
-   wg_sdk_pubkey: "<contenu de sdk.pub>"
-
-**``inventory/group_vars/vault.yml``** — clés privées et credentials (à chiffrer) :
-
-.. code-block:: yaml
-
-   vault_wifi_ssid: "nom-du-reseau"
-   vault_wifi_psk: "mot-de-passe-wifi"
-   vault_wg_controller_private_key: "<contenu de controller.key>"
-   vault_wg_sdk_private_key: "<contenu de sdk.key>"
-
-Chiffrer le vault :
+Chiffrer le vault après injection :
 
 .. code-block:: bash
 
-   ansible-vault encrypt inventory/group_vars/vault.yml
-
-Supprimer les fichiers de clés en clair après intégration :
-
-.. code-block:: bash
-
-   rm controller.key controller.pub sdk.key sdk.pub
+   make ansible-vault-encrypt
 
 ----
 
@@ -187,38 +163,35 @@ Tester la connectivité :
 SSH direct vers le controller
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Une fois le tunnel actif, le controller est joignable via son IP WireGuard :
+Une fois le tunnel actif, configurer ``~/.ssh/config`` (une seule fois,
+ou après rebuild du container SDK) :
 
 .. code-block:: bash
 
-   ssh iobewi@10.0.100.1
+   make ssh-config
+
+Le controller est ensuite joignable par son nom :
+
+.. code-block:: bash
+
+   ssh controller-01
 
 SSH vers un worker (via ProxyJump)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Les workers ne sont pas directement exposés. L'inventaire Ansible configure
-un ProxyJump automatique via le controller. Pour une connexion SSH manuelle :
+Les workers ne sont pas directement exposés. ``make ssh-config`` configure
+automatiquement un ProxyJump via le controller pour tout le sous-réseau
+``192.168.22.*`` :
+
+.. code-block:: bash
+
+   ssh iobewi@192.168.22.10
+
+Pour une connexion SSH manuelle sans ``~/.ssh/config`` :
 
 .. code-block:: bash
 
    ssh -J iobewi@10.0.100.1 iobewi@192.168.22.10
-
-Ou en ajoutant une entrée dans ``~/.ssh/config`` :
-
-.. code-block:: text
-
-   Host worker-*
-       User iobewi
-       ProxyJump iobewi@10.0.100.1
-
-   Host worker-motion-01
-       HostName 192.168.22.10
-
-   Host worker-perception-01
-       HostName 192.168.22.11
-
-   Host worker-edge-01
-       HostName 192.168.22.12
 
 Ansible via le tunnel
 ~~~~~~~~~~~~~~~~~~~~~

@@ -1,0 +1,7 @@
+name: wrk_ros_motion
+type: workload
+description: Image ROS 2 control — nœuds de contrôle moteur (FROM ros-core)
+image: ros-motion
+deps:
+  - wrk_buildkit
+  - wrk_ros_core

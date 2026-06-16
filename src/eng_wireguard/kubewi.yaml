@@ -1,0 +1,5 @@
+name: eng_wireguard
+type: engine
+description: Engine WireGuard — install, configure et cycle de vie du tunnel sur les nœuds
+deps:
+  - adp_ansible

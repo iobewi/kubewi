@@ -1,0 +1,25 @@
+#cloud-config
+autoinstall:
+  version: 1
+
+  locale: fr_FR.UTF-8
+  keyboard:
+    layout: fr
+
+  identity:
+    hostname: localhost
+    username: iobewi
+    # Générer le hash localement : openssl passwd -6
+    password: "HASH_A_GENERER_LOCALEMENT"
+
+  ssh:
+    install-server: true
+    allow-pw: true
+
+  packages:
+    - curl
+    - git
+    - chrony
+    - python3
+
+  updates: all

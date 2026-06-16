@@ -1,7 +1,7 @@
 {
-  "name": "r2bewi-sdk-manager",
-  "dockerComposeFile": "../docker/core/sdk/compose.yaml",
-  "service": "r2bewi-sdk-manager",
+  "name": "kubewi-sdk",
+  "dockerComposeFile": "./compose.yaml",
+  "service": "kubewi-sdk-manager",
   "workspaceFolder": "/workspace",
   "customizations": {
     "vscode": {

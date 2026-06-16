@@ -1,0 +1,33 @@
+system_timezone: "{{ timezone | default('Europe/Paris') }}"
+
+system_packages:
+  - avahi-daemon
+  - curl
+  - vim
+  - ca-certificates
+  - apt-transport-https
+  - gnupg
+  - locales
+  - net-tools
+
+system_locales:
+  - en_US.UTF-8
+
+ssh_port: 22
+ssh_permit_root_login: "no"
+ssh_password_authentication: "no"
+ssh_login_grace_time: 30
+ssh_max_auth_tries: 3
+ssh_client_alive_interval: 300
+ssh_client_alive_count_max: 2
+
+chrony_ntp_servers: "{{ ntp_servers | default(['pool.ntp.org']) }}"
+
+system_kernel_modules:
+  - overlay
+  - br_netfilter
+
+system_sysctl:
+  net.bridge.bridge-nf-call-iptables: "1"
+  net.bridge.bridge-nf-call-ip6tables: "1"
+  net.ipv4.ip_forward: "1"

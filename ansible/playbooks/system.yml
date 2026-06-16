@@ -1,4 +1,0 @@
-- name: System base provisioning
-  hosts: all
-  roles:
-    - system

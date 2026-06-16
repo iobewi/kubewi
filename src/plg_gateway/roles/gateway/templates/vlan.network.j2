@@ -1,0 +1,11 @@
+[Match]
+Name={{ network_bridge_name }}.{{ item.id }}
+
+[Network]
+LinkLocalAddressing=no
+IPv4SendRedirects=no
+{% if wifi_ap is defined and wifi_ap.vlan_id == item.id %}
+Bridge={{ wifi_ap.bridge }}
+{% elif network_vlan_ips is defined and item.id | string in network_vlan_ips %}
+Address={{ network_vlan_ips[item.id | string] }}
+{% endif %}

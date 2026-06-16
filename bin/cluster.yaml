@@ -1,0 +1,20 @@
+name: test
+nodes:
+  controller-01:
+    ip: 192.168.22.1
+    arch: x86_64
+    os: ubuntu
+    roles: [k0s, gateway, vpn, ssh]
+    k0s: controller
+  worker-01:
+    ip: 192.168.22.10
+    arch: aarch64
+    os: rpios
+    roles: [k0s]
+    k0s: worker
+  worker-02:
+    ip: 192.168.22.11
+    arch: aarch64
+    os: rpios
+    roles: [k0s]
+    k0s: worker

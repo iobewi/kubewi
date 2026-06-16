@@ -1,0 +1,5 @@
+name: eng_rpios
+type: engine
+description: Raspberry Pi OS — cgroups bootloader, zram swap (Debian Trixie aarch64)
+deps:
+  - adp_ansible

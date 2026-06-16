@@ -1,0 +1,4 @@
+- name: Base Debian provisioning
+  hosts: all
+  roles:
+    - debian

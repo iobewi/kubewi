@@ -69,13 +69,18 @@ Enrollment worker
 **Prérequis :** k0s tourne sur le controller, le tunnel WireGuard et kubectl
 sont configurés sur le SDK.
 
-**1. Configurer le tunnel et kubectl sur le SDK** *(une seule fois)*
+**1. Configurer le tunnel et kubectl sur le SDK** *(une seule fois, ou après rebuild du container)*
 
 .. code-block:: bash
 
    make vpn-up
-   make ssh-config
+   make ssh-init    # génère la clé SSH et la pousse sur tous les nœuds
    make kubeconfig
+
+``make ssh-init`` est nécessaire uniquement lors du premier setup ou après
+un rebuild du container SDK (la clé ``~/.ssh/kubewi_ansible`` n'est pas
+persistée dans l'image). Si la clé est déjà en place, ``make ssh-config``
+suffit pour reconfigurer ``~/.ssh/config``.
 
 ``make kubeconfig`` récupère le kubeconfig k0s depuis le controller et
 configure ``kubectl`` sur le SDK (contexte ``kubewi``).
@@ -95,7 +100,7 @@ DHCP.
 
    make add-worker
 
-Le script ``scripts/enroll.py`` :
+Le script ``ansible/scripts/enroll.py`` :
 
 1. Scale le Deployment ``dnsmasq-provisioning`` à 1 (``provisioning-on``)
 2. Lit les baux dnsmasq en continu (tableau en temps réel)

@@ -1,0 +1,15 @@
+- name: Enable cgroup memory on RPi bootloader
+  ansible.builtin.replace:
+    path: "{{ item }}"
+    regexp: '(^(?!.*cgroup_enable=memory).+)$'
+    replace: '\1 cgroup_memory=1 cgroup_enable=memory'
+  loop:
+    - /boot/firmware/cmdline.txt
+    - /boot/cmdline.txt
+  ignore_errors: true
+  register: cgroup_boot
+
+- name: Reboot if cgroup cmdline changed
+  ansible.builtin.reboot:
+    reboot_timeout: 120
+  when: cgroup_boot.results | selectattr('changed', 'equalto', true) | list | length > 0

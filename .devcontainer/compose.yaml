@@ -1,0 +1,40 @@
+services:
+  kubewi-sdk-manager:
+    privileged: true
+    network_mode: host
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: kubewi-sdk-manager:24.04
+    container_name: kubewi-sdk-manager
+    working_dir: /workspace
+    user: root
+
+    stdin_open: true
+    tty: true
+
+    volumes:
+      - ..:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../.claude:/root/.claude
+
+    environment:
+      HOME: /root
+      ANTHROPIC_MODEL: claude-sonnet-4-6
+
+    devices:
+      - /dev/kvm:/dev/kvm
+      - /dev/loop-control:/dev/loop-control
+      - /dev/loop0:/dev/loop0
+      - /dev/loop1:/dev/loop1
+      - /dev/loop2:/dev/loop2
+      - /dev/loop3:/dev/loop3
+
+    cap_add:
+      - SYS_ADMIN
+
+    security_opt:
+      - apparmor:unconfined
+
+    command: /bin/bash

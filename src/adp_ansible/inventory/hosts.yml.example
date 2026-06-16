@@ -1,0 +1,78 @@
+all:
+  children:
+
+    kubernetes:
+      children:
+
+        controllers:
+          children:
+
+            # Sous-groupe : controllers exposés sur le LAN externe
+            # Un gateway est un controller avec en plus : eth0 externe, WireGuard, routage
+            gateways:
+              hosts:
+                controller-01:
+                  ansible_host: 10.0.100.1      # IP WireGuard fixe (après init)
+                  ansible_user: iobewi
+                  init_host: "192.168.x.x"      # IP DHCP eth0 — premier run uniquement
+                  host_id: 1               # dérive : 192.168.22.1, .42.1, .62.1
+                  network_external_iface: eth0
+                  network_bridge_members:
+                    - eth1
+                  network_provisioning_ip: "192.168.0.1/24"
+                  # Optionnel — WiFi client (wpa_supplicant) — supprimer si pas de WiFi client
+                  network_wifi:
+                    iface: wlan0
+                    ssid: "{{ vault_wifi_ssid }}"
+                    psk: "{{ vault_wifi_psk }}"
+                  # Optionnel — WiFi AP (hostapd) — supprimer si pas d'AP
+                  # Mutuellement exclusif avec network_wifi sur la même interface
+                  wifi_ap:
+                    iface: wlan0
+                    bridge: br-wifi
+                    vlan_id: 220
+                    ssid: kubewi
+                    passphrase: "{{ vault_wifi_ap_psk }}"
+                    hw_mode: g      # g = 2.4 GHz, a = 5 GHz
+                    channel: 6
+                    country: FR
+                  # Requis — wg genkey | tee <name>.key | wg pubkey
+                  wg_controller_pubkey: ""
+                  wg_sdk_pubkey: ""
+
+          # Controllers purs (k0s uniquement, pas d'exposition externe)
+          # hosts:
+          #   controller-02:
+          #     ansible_host: 10.0.100.2
+          #     ansible_user: iobewi
+          #     host_id: 2
+          #     network_bridge_members:
+          #       - eth0
+          #       - eth1
+
+        workers:
+          vars:
+            ansible_ssh_common_args: '-o ProxyJump=iobewi@10.0.100.1 -o StrictHostKeyChecking=no'
+          hosts:
+            worker-01:
+              ansible_host: 192.168.22.10      # VLAN 220, après provisioning
+              ansible_user: iobewi
+              init_host: "192.168.0.x"         # DHCP provisioning, premier run uniquement
+              network_bridge_members:
+                - eth0
+                - eth1
+
+            worker-02:
+              ansible_host: 192.168.22.11      # VLAN 220, après provisioning
+              ansible_user: iobewi
+              init_host: "192.168.0.x"         # DHCP provisioning, premier run uniquement
+              network_bridge_members:
+                - eth0
+                - eth1
+
+            worker-03:
+              ansible_host: 192.168.22.12      # VLAN 220, après provisioning
+              ansible_user: iobewi
+              init_host: "192.168.0.x"         # DHCP provisioning, premier run uniquement
+              network_bridge_members:
+                - eth0

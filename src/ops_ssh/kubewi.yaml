@@ -1,0 +1,5 @@
+name: ops_ssh
+type: ops
+description: Accès SSH aux nœuds — génération et distribution de la clé
+deps:
+  - adp_ansible

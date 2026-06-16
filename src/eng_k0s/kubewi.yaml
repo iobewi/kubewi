@@ -1,0 +1,8 @@
+name: eng_k0s
+type: engine
+description: Kubernetes k0s — distribution légère pour bare metal
+deps:
+  - adp_ansible
+roles:
+  - controller
+  - worker

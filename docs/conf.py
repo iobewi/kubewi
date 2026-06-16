@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import pathlib
+import subprocess
+
 # -- Project information -----------------------------------------------------
 
 project = "KubeWI"
@@ -42,6 +45,19 @@ html_theme_options = {
     "navigation_depth": 3,
     "titles_only": True,
 }
+
+# -- D2 diagrams -------------------------------------------------------------
+
+def generate_d2_diagrams(app):
+    diagrams_dir = pathlib.Path(app.srcdir) / "_static" / "diagrams"
+    for d2_file in sorted(diagrams_dir.glob("*.d2")):
+        svg_file = d2_file.with_suffix(".svg")
+        subprocess.run(["d2", str(d2_file), str(svg_file)], check=True)
+
+
+def setup(app):
+    app.connect("builder-inited", generate_d2_diagrams)
+
 
 # -- Intersphinx -------------------------------------------------------------
 

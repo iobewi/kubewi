@@ -1,0 +1,12 @@
+- name: RPi OS — cgroups et zram (aarch64 uniquement)
+  hosts: all
+  gather_facts: true
+  tasks:
+    - ansible.builtin.include_role:
+        name: rpios
+      when: ansible_architecture == 'aarch64'
+
+- name: Base Debian provisioning
+  hosts: all
+  roles:
+    - debian

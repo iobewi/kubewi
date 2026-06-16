@@ -1,0 +1,7 @@
+# Configuration buildkitd — registry HTTP interne kubewi
+# Autorise le push vers le registry non-TLS du cluster.
+# registry.kubewi.internal est résolu par dnsmasq vers le gateway.
+
+[registry."registry.kubewi.internal:5000"]
+  http = true
+  insecure = true

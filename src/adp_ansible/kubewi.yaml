@@ -1,0 +1,3 @@
+name: adp_ansible
+type: adapter
+description: Adaptateur Ansible — inventaire, vault, playbooks, scripts

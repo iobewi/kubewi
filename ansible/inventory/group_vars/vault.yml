@@ -1,3 +1,0 @@
-# Chiffrer ce fichier avec : ansible-vault encrypt inventory/group_vars/vault.yml
-# vault_wifi_ssid: "nom-du-reseau"
-# vault_wifi_psk: "mot-de-passe-wifi"

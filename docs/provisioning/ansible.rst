@@ -118,7 +118,7 @@ Créer le squelette d'un nouveau rôle :
 Structure du projet
 --------------------
 
-Le projet Ansible est organisé en trois répertoires principaux :
+Le projet Ansible est organisé sous ``ansible/`` :
 
 .. list-table::
    :header-rows: 1
@@ -132,6 +132,11 @@ Le projet Ansible est organisé en trois répertoires principaux :
      - unités de configuration (une par périmètre fonctionnel)
    * - ``playbooks/``
      - points d'entrée qui associent des rôles à des groupes de nœuds
+   * - ``scripts/``
+     - scripts Python liés à Ansible : enrollment, kubeconfig, injection vault
+
+Les scripts SSH (``ssh_init.py``, ``ssh_config.py``) sont dans ``scripts/``
+à la racine du dépôt — ils ne sont pas spécifiques à Ansible.
 
 Chaque section de provisioning documente le rôle qui la met en œuvre.
 
@@ -172,11 +177,11 @@ Les variables sont réparties selon leur périmètre :
 
    * - Fichier
      - Contenu
-   * - ``group_vars/all.yml``
+   * - ``group_vars/all/main.yml``
      - Variables système communes (timezone, NTP, VLANs, become)
    * - ``group_vars/kubernetes.yml``
      - Variables k0s communes (version, CIDRs, Cilium)
-   * - ``group_vars/vault.yml``
+   * - ``group_vars/all/vault.yml``
      - Secrets chiffrés (WiFi, clés WireGuard)
    * - ``hosts.yml``
      - Variables spécifiques à chaque nœud (IPs, interfaces, clés publiques)
@@ -279,31 +284,27 @@ Préparation SSH
 
 Ansible se connecte aux nœuds via SSH avec authentification par clé.
 L'authentification par mot de passe sera **désactivée par le playbook**
-une fois la clé en place. L'ordre des opérations est donc important.
+une fois la clé en place.
 
-**1. Générer une paire de clés dédiée** sur la machine de contrôle :
-
-.. code-block:: bash
-
-   ssh-keygen -t ed25519 -C "ansible@kubewi" -f ~/.ssh/kubewi_ansible
-
-**2. Distribuer la clé sur chaque nœud**
-
-Cette étape nécessite une **authentification par mot de passe**.
-C'est la seule fois où un mot de passe sera utilisé. Un playbook dédié à usage
-unique (``playbooks/bootstrap.yml``) se charge de déployer la clé et de
-configurer le sudo sans mot de passe sur l'ensemble des nœuds. La
-séquence complète est décrite dans :doc:`system`.
-
-**3. Vérifier l'accès par clé** avant de lancer le playbook :
+La commande suivante gère l'intégralité de la préparation SSH en une seule
+opération (tunnel WireGuard requis) :
 
 .. code-block:: bash
 
-   ssh -i ~/.ssh/kubewi_ansible <user>@<ip-noeud>
+   make ssh-init
 
-La clé privée à utiliser est déclarée dans ``ansible.cfg`` via
-``private_key_file``, Ansible l'utilisera automatiquement pour toutes
-les connexions sans configuration supplémentaire.
+Elle génère la clé ``~/.ssh/kubewi_ansible`` si absente, configure
+``~/.ssh/config``, puis pousse la clé publique sur tous les nœuds via
+mot de passe (un prompt par groupe — controllers, puis workers).
+
+Pour reconfigurer uniquement ``~/.ssh/config`` (après ``make vpn-up``) :
+
+.. code-block:: bash
+
+   make ssh-config
+
+La clé privée est déclarée dans ``ansible.cfg`` via ``private_key_file``,
+Ansible l'utilisera automatiquement pour toutes les connexions.
 
 ----
 

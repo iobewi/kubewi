@@ -1,0 +1,12 @@
+- name: restart hostapd
+  ansible.builtin.systemd:
+    name: hostapd
+    state: restarted
+
+- name: restart systemd-networkd
+  ansible.builtin.systemd:
+    name: systemd-networkd
+    state: restarted
+  async: 1
+  poll: 0
+  ignore_errors: true

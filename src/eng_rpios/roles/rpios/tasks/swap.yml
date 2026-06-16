@@ -1,0 +1,15 @@
+- name: Check active swap
+  ansible.builtin.command: cat /proc/swaps
+  register: swap_active
+  changed_when: false
+
+- name: Disable zram swap device (Trixie)
+  ansible.builtin.command: swapoff /dev/zram0
+  when: "'/dev/zram0' in swap_active.stdout"
+  changed_when: "'/dev/zram0' in swap_active.stdout"
+
+- name: Mask zram swap unit (Trixie)
+  ansible.builtin.systemd:
+    name: systemd-zram-setup@zram0
+    masked: true
+    daemon_reload: true

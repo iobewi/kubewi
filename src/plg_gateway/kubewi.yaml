@@ -1,0 +1,7 @@
+name: plg_gateway
+type: plugin
+description: Brique de base du cluster — NAT, routage, VLANs et VPN du nœud gateway
+deps:
+  - adp_ansible
+  - plg_vpn
+  - ops_cluster

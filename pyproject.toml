@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "kubewi"
+version = "0.1.0"
+description = "SDK Manager pour cluster k0s bare metal"
+requires-python = ">=3.10"
+dependencies = [
+    "ruamel.yaml",
+]
+
+[project.scripts]
+kubewi = "kubewi.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,6 @@
+name: wrk_ros_perception
+type: workload
+description: Image perception GPU — nœud ARM64/Jetson avec NVIDIA L4T PyTorch
+image: ros-perception
+deps:
+  - wrk_buildkit

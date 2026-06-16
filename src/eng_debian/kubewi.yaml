@@ -1,0 +1,5 @@
+name: eng_debian
+type: engine
+description: Provisioning base Debian — packages, SSH, containerd, chrony, sysctl
+deps:
+  - adp_ansible

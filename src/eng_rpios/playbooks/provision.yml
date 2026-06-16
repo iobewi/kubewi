@@ -1,0 +1,4 @@
+- name: RPi OS provisioning — cgroups et swap (Trixie)
+  hosts: all
+  roles:
+    - rpios

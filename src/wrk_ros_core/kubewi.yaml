@@ -1,0 +1,6 @@
+name: wrk_ros_core
+type: workload
+description: Image ROS 2 Jazzy + Zenoh — base pour tous les nœuds ROS du cluster
+image: ros-core
+deps:
+  - wrk_buildkit

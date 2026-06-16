@@ -1,0 +1,5 @@
+- name: WiFi AP provisioning (hostapd)
+  hosts: gateways
+  roles:
+    - role: hostapd
+      when: wifi_ap is defined

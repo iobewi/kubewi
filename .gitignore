@@ -51,6 +51,8 @@ settings.local.json
 # Ansible — fichiers locaux (valeurs réelles, non versionnés)
 ansible/inventory/hosts.yml
 ansible/inventory/group_vars/all/vault.yml
+src/adp_ansible/inventory/hosts.yml
+src/adp_ansible/inventory/group_vars/all/vault.yml
 
 # cloud-init — fichiers générés localement (contiennent des secrets)
 cloud-init/cidata.iso
