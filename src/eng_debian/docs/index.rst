@@ -1,18 +1,18 @@
-Engine WireGuard
-================
+Engine Debian
+=============
 
 .. list-table::
    :widths: 20 80
    :stub-columns: 1
 
    * - Paquet
-     - ``eng_wireguard``
+     - ``eng_debian``
    * - Type
      - ``engine``
    * - Dépendances
      - :doc:`../adp_ansible/index`
 
-Engine WireGuard — install, configure et cycle de vie du tunnel sur les nœuds.
+Provisioning base Debian — packages, SSH, containerd, chrony, sysctl.
 
 .. toctree::
    :maxdepth: 1

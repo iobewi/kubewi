@@ -1,4 +1,4 @@
-Workload ROS Core
+Workload Buildkit
 =================
 
 .. list-table::
@@ -6,15 +6,14 @@ Workload ROS Core
    :stub-columns: 1
 
    * - Paquet
-     - ``wrk_ros_core``
+     - ``wrk_buildkit``
    * - Type
      - ``workload``
-   * - Image
-     - ``ros-core``
    * - Dépendances
-     - :doc:`../wrk_buildkit/index`
+     - *(aucune)*
 
-Image ROS 2 Jazzy + Zenoh — base pour tous les nœuds ROS du cluster.
+Engine Docker buildx — build et push d'images multi-arch (ARM64) pour les
+workloads ROS.
 
 .. toctree::
    :maxdepth: 1

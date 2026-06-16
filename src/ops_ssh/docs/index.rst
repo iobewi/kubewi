@@ -1,23 +1,23 @@
-Engine WireGuard
-================
+Ops SSH
+=======
 
 .. list-table::
    :widths: 20 80
    :stub-columns: 1
 
    * - Paquet
-     - ``eng_wireguard``
+     - ``ops_ssh``
    * - Type
-     - ``engine``
+     - ``ops``
    * - Dépendances
      - :doc:`../adp_ansible/index`
 
-Engine WireGuard — install, configure et cycle de vie du tunnel sur les nœuds.
+Accès SSH aux nœuds — génération, distribution de la clé et configuration
+``~/.ssh/config``.
 
 .. toctree::
    :maxdepth: 1
 
    role
    commands
-   variables
    implementation

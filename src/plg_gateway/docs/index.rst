@@ -10,7 +10,7 @@ Plugin Gateway
    * - Type
      - ``plugin``
    * - Dépendances
-     - :doc:`/src/adp_ansible/docs/index` · :doc:`/src/plg_vpn/docs/index` · :doc:`/src/ops_cluster/docs/index`
+     - :doc:`../adp_ansible/index` · :doc:`../plg_vpn/index` · :doc:`../ops_cluster/index`
 
 Brique de base du cluster — NAT, routage, VLANs et point d'accès WiFi du nœud gateway.
 

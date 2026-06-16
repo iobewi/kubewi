@@ -1,20 +1,20 @@
-Workload ROS Core
-=================
+Workload ROS Perception
+=======================
 
 .. list-table::
    :widths: 20 80
    :stub-columns: 1
 
    * - Paquet
-     - ``wrk_ros_core``
+     - ``wrk_ros_perception``
    * - Type
      - ``workload``
-   * - Image
-     - ``ros-core``
+   * - Image Docker
+     - ``ros-perception``
    * - Dépendances
      - :doc:`../wrk_buildkit/index`
 
-Image ROS 2 Jazzy + Zenoh — base pour tous les nœuds ROS du cluster.
+Image perception GPU — nœud ARM64/Jetson avec NVIDIA L4T PyTorch.
 
 .. toctree::
    :maxdepth: 1

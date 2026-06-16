@@ -92,8 +92,24 @@ Cas d'usage visés
 
 .. toctree::
    :hidden:
+   :caption: Plateforme
 
    architecture/overview
-   provisioning/bare-metal
    reference/packages
    reference/glossary
+
+.. toctree::
+   :hidden:
+   :caption: Provisioning
+
+   provisioning/bare-metal
+
+.. toctree::
+   :hidden:
+   :caption: Paquets
+
+   adapters
+   engines
+   plugins
+   ops
+   workloads

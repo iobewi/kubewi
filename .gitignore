@@ -61,4 +61,5 @@ cloud-init/cidata.iso
 site/
 docs/_build/
 docs/_templates/
+docs/packages/
 .venv-docs/

@@ -1,18 +1,18 @@
-Engine WireGuard
-================
+Engine Raspberry Pi OS
+======================
 
 .. list-table::
    :widths: 20 80
    :stub-columns: 1
 
    * - Paquet
-     - ``eng_wireguard``
+     - ``eng_rpios``
    * - Type
      - ``engine``
    * - Dépendances
      - :doc:`../adp_ansible/index`
 
-Engine WireGuard — install, configure et cycle de vie du tunnel sur les nœuds.
+Raspberry Pi OS — cgroups bootloader, zram swap (Debian Trixie aarch64).
 
 .. toctree::
    :maxdepth: 1

@@ -1,23 +1,21 @@
-Engine WireGuard
-================
+Engine Ubuntu
+=============
 
 .. list-table::
    :widths: 20 80
    :stub-columns: 1
 
    * - Paquet
-     - ``eng_wireguard``
+     - ``eng_ubuntu``
    * - Type
      - ``engine``
    * - Dépendances
      - :doc:`../adp_ansible/index`
 
-Engine WireGuard — install, configure et cycle de vie du tunnel sur les nœuds.
+Provisioning base Ubuntu (placeholder).
 
 .. toctree::
    :maxdepth: 1
 
    role
    commands
-   variables
-   implementation
