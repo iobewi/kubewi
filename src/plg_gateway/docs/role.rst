@@ -114,6 +114,16 @@ Couches
 Bridge WiFi — architecture L2
 -------------------------------
 
+Le bridge WiFi a été introduit pour supporter **embewi** — des agents
+ESP32 orchestrés par Kubernetes via les CRDs ``McuNode`` et
+``McuDeployment`` (`embewi-core <https://github.com/iobewi/embewi-core>`_).
+
+L'ESP32 se provisionne via un portail captif WiFi (AP ``embewi-XXXX``),
+obtient une IP ``192.168.22.x`` sur VLAN 220, et rejoint le cluster comme
+n'importe quel nœud — Kubernetes crée un ``Service`` + ``EndpointSlice``
+par device, les firmwares sont déployés via OTA depuis le registry OCI
+interne (VLAN 420).
+
 Sans WiFi AP, ``br0.220`` porte directement l'IP du VLAN 220 :
 
 .. code-block:: text
@@ -153,9 +163,11 @@ partagent le même ``192.168.22.0/24``.
    * - ``wlan0``
      - Access port géré par hostapd (``bridge=br-wifi`` dans hostapd.conf)
 
-Ce choix (bridge L2 plutôt que routage ou NAT WiFi) permet aux workloads
-ROS 2 et aux outils kubewi de joindre les nœuds sans configuration réseau
-supplémentaire depuis le WiFi.
+Ce choix (bridge L2 plutôt que routage ou NAT WiFi) est indispensable pour
+embewi : ``embewi-core`` atteint l'ESP32 directement via son
+``EndpointSlice`` (IP ``192.168.22.x``), et l'ESP32 envoie son heartbeat
+vers ``192.168.22.1:8080`` sans routage supplémentaire. ROS 2 et les
+outils kubewi bénéficient du même accès transparent depuis le WiFi.
 
 ----
 
