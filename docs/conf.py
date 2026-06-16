@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import pathlib
+import shutil
 import subprocess
 
 # -- Project information -----------------------------------------------------
@@ -55,6 +56,8 @@ html_theme_options = {
 # -- D2 diagrams -------------------------------------------------------------
 
 def generate_d2_diagrams(app):
+    if not shutil.which("d2"):
+        return
     diagrams_dir = pathlib.Path(app.srcdir) / "_static" / "diagrams"
     for d2_file in sorted(diagrams_dir.glob("*.d2")):
         svg_file = d2_file.with_suffix(".svg")
