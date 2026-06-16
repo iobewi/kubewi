@@ -94,15 +94,10 @@ Cas d'usage visés
    :hidden:
    :caption: Plateforme
 
+   getting-started
    architecture/overview
    reference/packages
    reference/glossary
-
-.. toctree::
-   :hidden:
-   :caption: Provisioning
-
-   provisioning/bare-metal
 
 .. toctree::
    :hidden:

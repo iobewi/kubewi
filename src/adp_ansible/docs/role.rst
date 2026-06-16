@@ -2,6 +2,82 @@ Rôle
 ====
 
 ``adp_ansible`` est l'interface stable entre le CLI kubewi et Ansible.
+
+----
+
+Principes Ansible
+-----------------
+
+**Sans agent** — Ansible se connecte aux nœuds via SSH et exécute les tâches
+à distance avec Python. Aucun daemon ne tourne sur les nœuds cibles.
+
+**Idempotent** — relancer un playbook sur un nœud déjà configuré ne produit
+aucun changement si l'état du système correspond à la configuration déclarée.
+
+**Déclaratif** — on décrit *ce que le système doit être*, pas *les commandes
+à exécuter*. Ansible traduit cette déclaration en actions adaptées à l'état
+courant du nœud.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 80
+
+   * - Concept
+     - Rôle
+   * - Inventory
+     - liste des nœuds, leurs adresses et leurs variables
+   * - Playbook
+     - séquence de rôles appliquée à un groupe de nœuds
+   * - Role
+     - unité de configuration réutilisable (tâches, templates, handlers)
+   * - Handler
+     - tâche déclenchée uniquement quand une tâche notifie un changement
+   * - Template
+     - fichier de configuration généré dynamiquement depuis des variables
+
+----
+
+Hiérarchie de l'inventaire
+---------------------------
+
+Les nœuds sont organisés en groupes reflétant leurs responsabilités :
+
+.. code-block:: yaml
+
+   all:
+     children:
+       kubernetes:             # tous les nœuds k0s
+         children:
+           controllers:
+             children:
+               gateways:       # controller + exposition externe + WireGuard
+           workers:
+
+Cette hiérarchie garantit que toute modification d'un rôle commun
+(version k0s, CIDRs) se propage sur controllers et workers.
+
+----
+
+Collections Galaxy
+------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Collection
+     - Modules utilisés
+   * - ``ansible.posix``
+     - ``sysctl``, ``authorized_key``
+   * - ``community.general``
+     - ``timezone``, ``modprobe``
+
+.. code-block:: bash
+
+   ansible-galaxy collection install -r src/adp_ansible/requirements.yml
+
+----
+
 Il expose deux fonctions primitives utilisées par tous les engines et
 plugins qui pilotent des playbooks : ``run_playbook()`` et ``run_make()``.
 

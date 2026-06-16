@@ -16,3 +16,35 @@ La registry OCI interne tourne sur le controller (``registry:2``, port 5000,
 VLAN 420). Chaque worker configure containerd pour accepter cette registry
 sans TLS via ``/etc/k0s/containerd.d/registry.toml`` — déposé avant le
 démarrage de k0s pour être pris en compte dès le premier pull.
+
+.. image:: ../../../docs/_static/diagrams/controller.svg
+   :alt: Bootstrap controller k0s
+   :align: center
+   :target: ../../../docs/_static/diagrams/controller.svg
+
+**Registry OCI** (``registry:2``, Distribution CNCF)
+
+Déployée comme manifest statique dans ``/var/lib/k0s/manifests/registry/``.
+k0s applique ce manifest automatiquement au démarrage — sans intervention
+kubectl. Le pod tourne avec ``hostNetwork: true`` pour écouter directement
+sur les interfaces du nœud.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Paramètre
+     - Valeur
+   * - Adresse
+     - ``192.168.42.1:5000`` (VLAN 420)
+   * - Stockage
+     - ``/var/lib/registry`` (hostPath, persistant)
+   * - TLS
+     - désactivé (réseau local fermé)
+
+**DHCP de provisioning**
+
+Un manifest statique dans ``/var/lib/k0s/manifests/provisioning/``
+crée le namespace ``provisioning`` et le Deployment ``dnsmasq-provisioning``
+(``replicas: 0`` par défaut). Ce pod DHCP est activé uniquement pendant
+l'enrollment d'un worker — il ne consomme aucune ressource au repos.

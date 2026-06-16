@@ -19,4 +19,5 @@ Adaptateur Ansible — inventaire, vault, playbooks, scripts.
 
    role
    commands
+   variables
    implementation
