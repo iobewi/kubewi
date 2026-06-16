@@ -32,7 +32,6 @@ exclude_patterns = [
     "_build", "Thumbs.db", ".DS_Store",
     "_archive",
     "decisions.rst",
-    "reference/package-template.rst",
 ]
 language = "fr"
 

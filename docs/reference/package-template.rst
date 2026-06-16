@@ -3,135 +3,154 @@
 Trame documentaire — paquet KubeWI
 ====================================
 
-Ce fichier est la trame de référence pour documenter un paquet.
-Chaque paquet le recopie dans ``src/<type>_<nom>/docs.rst`` et complète
-les sections. Les sections marquées ``[optionnel]`` sont omises si elles
-ne s'appliquent pas au type du paquet.
+Chaque paquet possède un répertoire ``docs/`` avec les fichiers décrits
+ci-dessous. Copier les trames, supprimer les sections ``[optionnel]``
+qui ne s'appliquent pas, compléter le contenu.
 
 ----
 
-.. ============================================================
-.. DÉBUT DU TEMPLATE — copier à partir d'ici dans docs.rst
-.. ============================================================
+``docs/index.rst``
+------------------
 
-<Nom lisible du paquet>
-=======================
+.. code-block:: rst
 
-.. list-table::
-   :widths: 20 80
-   :stub-columns: 1
+    Plugin / Engine / Adapter <Nom lisible>
+    ========================================
 
-   * - Paquet
-     - ``<type>_<nom>``
-   * - Type
-     - ``<adapter | engine | plugin | ops | workload>``
-   * - Dépendances
-     - :doc:`/src/<dep1>/docs` · :doc:`/src/<dep2>/docs`
+    .. list-table::
+       :widths: 20 80
+       :stub-columns: 1
 
-<Description courte — reprend exactement le champ ``description`` de ``kubewi.yaml``>
+       * - Paquet
+         - ``<type>_<nom>``
+       * - Type
+         - ``<adapter | engine | plugin | ops | workload>``
+       * - Dépendances
+         - :doc:`../adp_kube/index`,
+           :doc:`../adp_ansible/index`
 
-----
+    <Description courte — reprend le champ ``description`` de ``kubewi.yaml``>
 
-Rôle
-----
+    .. toctree::
+       :maxdepth: 1
 
-<2 à 5 phrases. Ce que fait ce paquet, pourquoi il existe, sa place dans
-la hiérarchie KubeWI. Ne pas répéter le nom — expliquer la valeur.>
+       role
+       commands
+       variables
+       implementation
 
-----
-
-Dépendances
------------
-
-.. [optionnel — omettre si deps: est vide dans kubewi.yaml]
-
-.. list-table::
-   :header-rows: 1
-   :widths: 30 70
-
-   * - Paquet
-     - Ce qui est utilisé
-   * - ``<type>_<dep>``
-     - <ce que ce paquet consomme de cette dépendance>
+Supprimer les entrées ``toctree`` correspondant aux fichiers optionnels
+non créés (``commands``, ``variables``).
 
 ----
 
-Couches
--------
+``docs/role.rst``
+-----------------
 
-Indiquer uniquement les couches présentes dans le paquet.
+.. code-block:: rst
 
-**Ansible** ``playbooks/`` + ``roles/``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Rôle
+    ====
 
-.. [omettre pour adapter et workload]
+    <2 à 5 phrases : ce que fait ce paquet, pourquoi il existe,
+    sa place dans la hiérarchie KubeWI. Expliquer la valeur, pas le nom.>
 
-<Lister les playbooks et rôles, leur périmètre.>
+    .. image:: <nom>.svg         [optionnel — diagramme D2 colocalisé]
+       :alt: <légende>
+       :align: center
 
-**Kubernetes** ``manifests/``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ----
 
-.. [omettre si pas de manifests/]
+    Architecture
+    ------------
 
-<Lister les manifests, leur objet (Deployment, ConfigMap, RBAC…).>
+    <Description de l'architecture interne ou des interactions clés.
+    Diagrammes textuels (code-block:: text), tableaux, listes.>
 
-**Image** ``Dockerfile``
-~~~~~~~~~~~~~~~~~~~~~~~~~
+    ----
 
-.. [workload uniquement]
+    Dépendances
+    -----------
 
-<Image de base, ce qui est ajouté, tag produit.>
+    .. list-table::
+       :header-rows: 1
+       :widths: 30 70
 
-----
-
-Commandes CLI
--------------
-
-.. [omettre si le paquet n'expose pas de commandes (rare)]
-
-.. code-block:: text
-
-   kubewi <nom> <sous-commande>   <description courte>
-
-.. list-table::
-   :header-rows: 1
-   :widths: 40 60
-
-   * - Commande
-     - Usage
-   * - ``kubewi <nom> <cmd>``
-     - <ce que ça fait>
+       * - Paquet
+         - Ce qui est utilisé
+       * - ``<type>_<dep>``
+         - <ce que ce paquet consomme>
 
 ----
 
-Variables
----------
+``docs/commands.rst``  *[si le paquet expose une CLI]*
+------------------------------------------------------
 
-.. [optionnel — adapter et workload sans Ansible peuvent omettre]
+.. code-block:: rst
 
-Variables Ansible clés. Les valeurs par défaut sont dans
-``inventory/group_vars/`` ou dans les ``defaults/`` du rôle.
+    Commandes
+    =========
 
-.. list-table::
-   :header-rows: 1
-   :widths: 38 22 40
+    .. code-block:: text
 
-   * - Variable
-     - Défaut
-     - Description
-   * - ``<variable_name>``
-     - ``<valeur>``
-     - <à quoi elle sert>
+       kubewi <nom> <sous-commande>   # description courte
+
+    ----
+
+    ``kubewi <nom> <sous-commande>``
+    --------------------------------
+
+    <Ce que fait la commande, séquence d'actions, exemples de sortie.>
 
 ----
 
-Implémentation
---------------
+``docs/variables.rst``  *[si le paquet utilise Ansible]*
+---------------------------------------------------------
 
-<Ce qui se passe sous le capot. Décrire les étapes importantes des rôles
-ou du code Python, les décisions non-évidentes, les contraintes connues.
-Ne pas paraphraser le code — expliquer le POURQUOI.>
+.. code-block:: rst
 
-.. ============================================================
-.. FIN DU TEMPLATE
-.. ============================================================
+    Variables
+    =========
+
+    Variables de l'inventaire (``group_vars/``) et des ``defaults/`` des rôles.
+
+    .. list-table::
+       :header-rows: 1
+       :widths: 38 22 40
+
+       * - Variable
+         - Défaut
+         - Description
+       * - ``<variable_name>``
+         - ``<valeur>``
+         - <à quoi elle sert>
+
+----
+
+``docs/implementation.rst``
+---------------------------
+
+.. code-block:: rst
+
+    Implémentation
+    ==============
+
+    <Ce qui se passe sous le capot.
+    Décrire les décisions non-évidentes, les contraintes, les séquences clés.
+    Extraits de templates Jinja2 ou de manifests si le POURQUOI n'est pas
+    lisible dans le code seul. Ne pas paraphraser le code.>
+
+----
+
+Diagrammes D2 colocalisés
+--------------------------
+
+Placer les fichiers ``.d2`` dans ``docs/`` du paquet. Sphinx les compile
+automatiquement. Référencer le ``.svg`` généré par son nom seul :
+
+.. code-block:: rst
+
+    .. image:: mon-diagramme.svg
+       :alt: Diagramme
+       :align: center
+       :target: mon-diagramme.svg

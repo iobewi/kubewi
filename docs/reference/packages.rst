@@ -165,8 +165,83 @@ Arborescence standard
     ├── manifests/                # couche kube   — YAML purs (jamais de Jinja2)
     │
     ├── Dockerfile                # workload uniquement — image à builder
+    ├── scripts/                  # logique procédurale propre au paquet
     │
-    └── scripts/                  # logique procédurale propre au paquet
+    └── docs/                     # documentation du paquet (voir section ci-dessous)
+        ├── index.rst             # entête + toctree
+        ├── role.rst              # rôle, architecture, dépendances
+        ├── commands.rst          # référence CLI (optionnel)
+        ├── variables.rst         # variables Ansible (optionnel)
+        ├── implementation.rst    # détails d'implémentation
+        └── *.d2 / *.svg          # diagrammes colocalisés
+
+----
+
+Documentation d'un paquet
+--------------------------
+
+Chaque paquet porte sa propre documentation dans ``src/<type>_<nom>/docs/``.
+À la compilation Sphinx, ``conf.py`` crée un lien symbolique
+``docs/packages/<nom> → src/<nom>/docs/`` : les fichiers sont servis comme
+s'ils étaient dans l'arbre ``docs/``, sans duplication.
+
+**Fichiers attendus**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 28 12 60
+
+   * - Fichier
+     - Requis
+     - Contenu attendu
+   * - ``index.rst``
+     - oui
+     - Entête du paquet (fiche identité + toctree vers les autres fichiers).
+       Inclus dans le chapitre de type (``adapters.rst``, ``plugins.rst``…).
+   * - ``role.rst``
+     - oui
+     - Rôle fonctionnel, architecture, dépendances, diagramme éventuel.
+       C'est la page principale — elle explique le **pourquoi**.
+   * - ``commands.rst``
+     - si CLI
+     - Référence de toutes les sous-commandes ``kubewi <nom> <cmd>``,
+       avec exemples de sortie.
+   * - ``variables.rst``
+     - si Ansible
+     - Variables de l'inventaire et des ``defaults/`` du rôle, avec
+       valeurs par défaut et description.
+   * - ``implementation.rst``
+     - oui
+     - Détails d'implémentation non évidents : séquences, décisions
+       d'architecture, contraintes connues, extraits de templates clés.
+
+**Diagrammes D2 colocalisés**
+
+Les diagrammes propres à un paquet sont placés dans ``src/<type>_<nom>/docs/``
+(fichier ``.d2`` + ``.svg`` généré). ``conf.py`` compile automatiquement
+tous les ``src/*/docs/*.d2`` au lancement de Sphinx.
+
+.. code-block:: text
+
+    src/plg_gateway/docs/
+    ├── network-stack.d2    # source D2
+    ├── network-stack.svg   # généré (commité pour aperçu sans D2)
+    └── role.rst            # référence l'image localement :
+                            #   .. image:: network-stack.svg
+
+Le référencement dans le RST est local (nom de fichier seul) : Sphinx suit
+le lien symbolique jusqu'au fichier physique et résout les chemins depuis là.
+
+Voir :doc:`package-template` pour la trame à copier lors de la création
+d'un nouveau paquet.
+
+**Assemblage Sphinx**
+
+Les chapitres de type (``adapters.rst``, ``engines.rst``, ``plugins.rst``,
+``ops.rst``, ``workloads.rst``) référencent les paquets via des entrées
+``toctree`` de la forme ``packages/<nom>/index``. La directive ``packages/``
+est un répertoire de liens symboliques généré dynamiquement — il est listé
+dans ``.gitignore`` et recréé à chaque build.
 
 ----
 

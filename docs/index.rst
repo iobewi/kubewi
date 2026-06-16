@@ -97,6 +97,7 @@ Cas d'usage visés
    getting-started
    architecture/overview
    reference/packages
+   reference/package-template
    reference/glossary
 
 .. toctree::
