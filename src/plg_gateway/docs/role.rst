@@ -4,10 +4,10 @@ Rôle
 ``plg_gateway`` configure la couche réseau Linux de l'ensemble du cluster
 et le point d'accès WiFi optionnel.
 
-.. image:: ../../../docs/_static/diagrams/network-stack.svg
+.. image:: network-stack.svg
    :alt: Stack réseau KubeWI
    :align: center
-   :target: ../../../docs/_static/diagrams/network-stack.svg
+   :target: network-stack.svg
 
 ----
 

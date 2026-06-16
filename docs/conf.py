@@ -58,10 +58,14 @@ html_theme_options = {
 def generate_d2_diagrams(app):
     if not shutil.which("d2"):
         return
+    # Diagrammes plateforme (docs/_static/diagrams/)
     diagrams_dir = pathlib.Path(app.srcdir) / "_static" / "diagrams"
     for d2_file in sorted(diagrams_dir.glob("*.d2")):
-        svg_file = d2_file.with_suffix(".svg")
-        subprocess.run(["d2", str(d2_file), str(svg_file)], check=True)
+        subprocess.run(["d2", str(d2_file), str(d2_file.with_suffix(".svg"))], check=True)
+    # Diagrammes paquets (src/*/docs/*.d2)
+    src_dir = pathlib.Path(app.srcdir).parent / "src"
+    for d2_file in sorted(src_dir.glob("*/docs/*.d2")):
+        subprocess.run(["d2", str(d2_file), str(d2_file.with_suffix(".svg"))], check=True)
 
 
 # -- Package docs symlinks ---------------------------------------------------

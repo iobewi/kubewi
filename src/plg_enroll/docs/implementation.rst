@@ -1,6 +1,11 @@
 Implémentation
 ==============
 
+.. image:: worker.svg
+   :alt: Enrollment worker
+   :align: center
+   :target: worker.svg
+
 L'enrollment est divisé en deux phases distinctes pour permettre
 le redémarrage en cas d'échec :
 

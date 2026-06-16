@@ -17,10 +17,10 @@ VLAN 420). Chaque worker configure containerd pour accepter cette registry
 sans TLS via ``/etc/k0s/containerd.d/registry.toml`` — déposé avant le
 démarrage de k0s pour être pris en compte dès le premier pull.
 
-.. image:: ../../../docs/_static/diagrams/controller.svg
+.. image:: controller.svg
    :alt: Bootstrap controller k0s
    :align: center
-   :target: ../../../docs/_static/diagrams/controller.svg
+   :target: controller.svg
 
 **Registry OCI** (``registry:2``, Distribution CNCF)
 
