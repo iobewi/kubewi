@@ -46,7 +46,9 @@ all:
 
         workers:
           vars:
-            ansible_ssh_common_args: '-o ProxyJump=iobewi@10.0.100.1 -o StrictHostKeyChecking=no'
+            ansible_ssh_common_args: >-
+              -o ProxyJump={{ hostvars[groups['gateways'][0]]['ansible_user'] }}@{{ hostvars[groups['gateways'][0]]['ansible_host'] }}
+              -o StrictHostKeyChecking=no
           hosts:
             # Les workers sont ajoutés automatiquement par : kubewi cluster apply
             # Exemple de worker (décommenter et adapter) :
