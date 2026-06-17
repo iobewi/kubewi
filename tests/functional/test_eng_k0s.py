@@ -30,20 +30,20 @@ def test_kubeconfig_uses_python3(mock_subprocess):
 # ── add controller ────────────────────────────────────────────────────────────
 
 
-def test_add_controller_calls_ansible_playbook(mock_subprocess):
+def test_add_controller_calls_ansible_playbook(mock_subprocess, project_dir):
     from eng_k0s.kubewi.commands import run_cmd
     run_cmd(Namespace(k0s_cmd="add", k0s_add_target="controller", limit="controllers"))
     assert any("ansible-playbook" in c for c in _cmds(mock_subprocess))
 
 
-def test_add_controller_default_limit(mock_subprocess):
+def test_add_controller_default_limit(mock_subprocess, project_dir):
     from eng_k0s.kubewi.commands import run_cmd
     run_cmd(Namespace(k0s_cmd="add", k0s_add_target="controller", limit="controllers"))
     cmds = _cmds(mock_subprocess)
     assert any("controllers" in c for c in cmds)
 
 
-def test_add_controller_custom_limit(mock_subprocess):
+def test_add_controller_custom_limit(mock_subprocess, project_dir):
     from eng_k0s.kubewi.commands import run_cmd
     run_cmd(Namespace(k0s_cmd="add", k0s_add_target="controller", limit="ctrl-02"))
     assert any("ctrl-02" in c for c in _cmds(mock_subprocess))
@@ -52,7 +52,7 @@ def test_add_controller_custom_limit(mock_subprocess):
 # ── add worker ────────────────────────────────────────────────────────────────
 
 
-def test_add_worker_calls_worker_init_and_add(mock_subprocess):
+def test_add_worker_calls_worker_init_and_add(mock_subprocess, project_dir):
     """worker_init (bootstrap réseau) puis add_worker (enrollment k0s)."""
     from eng_k0s.kubewi.commands import run_cmd
     with patch("getpass.getpass", return_value="testpass"):
@@ -61,7 +61,7 @@ def test_add_worker_calls_worker_init_and_add(mock_subprocess):
     assert len(mock_subprocess) >= 2
 
 
-def test_add_worker_passes_worker_name(mock_subprocess):
+def test_add_worker_passes_worker_name(mock_subprocess, project_dir):
     from eng_k0s.kubewi.commands import run_cmd
     with patch("getpass.getpass", return_value="testpass"):
         run_cmd(Namespace(k0s_cmd="add", k0s_add_target="worker", name="worker-edge-01"))

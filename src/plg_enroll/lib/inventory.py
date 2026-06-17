@@ -8,23 +8,25 @@ from pathlib import Path
 from ruamel.yaml import YAML
 from ruamel.yaml.comments import CommentedMap
 
-_WORK_DIR  = Path(__file__).parent.parent.parent.parent / 'work'
-HOSTS_FILE = _WORK_DIR / 'hosts.yml'
-
 WORKER_ID_START = 10
 ANSIBLE_USER    = 'iobewi'
+
+
+def hosts_file() -> Path:
+    from kubewi._project import resolve
+    return resolve() / 'hosts.yml'
 
 
 def load_hosts():
     yaml = YAML()
     yaml.preserve_quotes = True
     yaml.width = 120
-    with open(HOSTS_FILE) as f:
+    with open(hosts_file()) as f:
         return yaml.load(f), yaml
 
 
 def save_hosts(data, yaml) -> None:
-    with open(HOSTS_FILE, 'w') as f:
+    with open(hosts_file(), 'w') as f:
         yaml.dump(data, f)
 
 

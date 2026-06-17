@@ -17,7 +17,6 @@ import sys
 
 from adp_kube.kubewi import lib as kube
 from plg_enroll.lib.detection import detect_phase
-from plg_enroll.lib.inventory import HOSTS_FILE
 
 NAME = 'enroll'
 

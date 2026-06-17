@@ -9,7 +9,7 @@ import threading
 import time
 
 from plg_enroll.lib.inventory import (
-    HOSTS_FILE, add_worker, load_hosts, next_host_id, worker_name, workers_section,
+    add_worker, load_hosts, next_host_id, worker_name, workers_section,
 )
 
 

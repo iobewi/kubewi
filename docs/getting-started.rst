@@ -99,21 +99,34 @@ Elle repose sur **Ventoy** (boot manager USB multi-ISO) et **cloud-init**
 
 ----
 
-Initialisation de l'inventaire
---------------------------------
+Initialisation du projet
+------------------------
 
-Le SDK KubeWI s'exécute depuis le Dev Container (``/workspace``).
-Toutes les commandes ``kubewi`` sont lancées depuis ce contexte.
+Un **projet kubewi** est un répertoire autonome qui contient toute la
+configuration locale d'un cluster : inventaire, vault, clés WireGuard.
+Il est indépendant du code source de kubewi et peut être versionné séparément.
 
-**1. Créer l'inventaire et le vault**
+kubewi détecte le projet actif dans cet ordre de priorité :
+
+1. Variable d'environnement ``KUBEWI_PROJECT=/chemin/vers/projet``
+2. Répertoire courant (si un fichier ``.kubewi-project`` y est présent)
+
+**1. Créer le projet**
 
 .. code-block:: bash
 
-   kubewi cluster inventory-init
+   kubewi cluster inventory-init mon-cluster
+   cd mon-cluster
 
-Crée ``src/adp_ansible/inventory/hosts.yml`` et
-``src/adp_ansible/inventory/group_vars/all/vault.yml`` depuis les
-exemples versionnés.
+Crée ``mon-cluster/`` avec :
+
+.. code-block:: text
+
+   mon-cluster/
+   ├── .kubewi-project      ← marqueur de projet
+   ├── hosts.yml            ← inventaire Ansible
+   └── group_vars/all/
+       └── vault.yml        ← secrets (à chiffrer)
 
 **2. Éditer** ``hosts.yml``
 

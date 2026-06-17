@@ -1,10 +1,13 @@
 """
-Fixture mock_subprocess — intercepte tous les appels subprocess.run
-via kubewi._utils pour les tests fonctionnels sans cluster réel.
+Fixtures partagées pour les tests fonctionnels.
+
+- mock_subprocess : intercepte subprocess.run
+- project_dir     : crée un projet kubewi temporaire et l'active via KUBEWI_PROJECT
 """
 from __future__ import annotations
 
 import subprocess
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -34,3 +37,16 @@ def mock_subprocess(monkeypatch: pytest.MonkeyPatch) -> list[list[str]]:
 
     monkeypatch.setattr("subprocess.run", _fake_run)
     return calls
+
+
+@pytest.fixture
+def project_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Crée un projet kubewi temporaire et l'active via KUBEWI_PROJECT."""
+    from kubewi._project import MARKER
+    project = tmp_path / 'test-cluster'
+    project.mkdir()
+    (project / MARKER).write_text('name: test-cluster\n')
+    (project / 'group_vars' / 'all').mkdir(parents=True)
+    (project / 'hosts.yml').write_text('all:\n  children: {}\n')
+    monkeypatch.setenv('KUBEWI_PROJECT', str(project))
+    return project

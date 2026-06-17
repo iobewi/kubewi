@@ -1,4 +1,4 @@
-INVENTORY      := ../../work
+INVENTORY      ?= $(KUBEWI_PROJECT)
 TEMPLATES      := inventory
 NAME           ?=
 IFACES         ?= 2
@@ -7,29 +7,7 @@ YES            ?=
 SINGLE         ?=
 DRY_RUN        ?=
 
-.PHONY: init wifi wireguard-keys vault-encrypt vault-edit
-
-# ── Init ──────────────────────────────────────────────────────────────────────
-
-init:
-	@mkdir -p $(INVENTORY)/group_vars/all
-	@if [ ! -f $(INVENTORY)/hosts.yml ]; then \
-		cp $(TEMPLATES)/hosts.yml.example $(INVENTORY)/hosts.yml; \
-		echo "  ✓ hosts.yml créé dans work/"; \
-	else \
-		echo "  - hosts.yml déjà présent, ignoré"; \
-	fi
-	@if [ ! -f $(INVENTORY)/group_vars/all/vault.yml ]; then \
-		cp $(TEMPLATES)/group_vars/all/vault.yml.example $(INVENTORY)/group_vars/all/vault.yml; \
-		echo "  ✓ vault.yml créé dans work/"; \
-	else \
-		echo "  - vault.yml déjà présent, ignoré"; \
-	fi
-	@echo ""
-	@echo "Prochaines étapes :"
-	@echo "  make ansible-wifi              — renseigner les credentials WiFi"
-	@echo "  make ansible-wireguard-keys    — générer les clés WireGuard"
-	@echo "  vim $(INVENTORY)/hosts.yml     — renseigner init_host et ansible_user"
+.PHONY: wifi wireguard-keys vault-encrypt vault-edit
 
 # ── WiFi ──────────────────────────────────────────────────────────────────────
 

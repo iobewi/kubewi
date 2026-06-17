@@ -1,0 +1,80 @@
+"""
+Tests fonctionnels — ops_cluster
+Vérifie inventory-init, init (cluster.yaml), et les commandes make.
+"""
+from __future__ import annotations
+
+from argparse import Namespace
+from pathlib import Path
+
+
+def _cmds(calls: list[list[str]]) -> list[str]:
+    return [" ".join(c) for c in calls]
+
+
+# ── inventory-init ────────────────────────────────────────────────────────────
+
+
+def test_inventory_init_creates_project_dir(tmp_path):
+    from ops_cluster.kubewi.commands import _inventory_init
+    _inventory_init(Namespace(name='mon-cluster', dir=str(tmp_path)))
+    assert (tmp_path / 'mon-cluster').is_dir()
+
+
+def test_inventory_init_creates_marker(tmp_path):
+    from kubewi._project import MARKER
+    from ops_cluster.kubewi.commands import _inventory_init
+    _inventory_init(Namespace(name='mon-cluster', dir=str(tmp_path)))
+    assert (tmp_path / 'mon-cluster' / MARKER).exists()
+
+
+def test_inventory_init_creates_hosts_yml(tmp_path):
+    from ops_cluster.kubewi.commands import _inventory_init
+    _inventory_init(Namespace(name='mon-cluster', dir=str(tmp_path)))
+    assert (tmp_path / 'mon-cluster' / 'hosts.yml').exists()
+
+
+def test_inventory_init_creates_vault_yml(tmp_path):
+    from ops_cluster.kubewi.commands import _inventory_init
+    _inventory_init(Namespace(name='mon-cluster', dir=str(tmp_path)))
+    assert (tmp_path / 'mon-cluster' / 'group_vars' / 'all' / 'vault.yml').exists()
+
+
+# ── init (cluster.yaml) ───────────────────────────────────────────────────────
+
+
+def test_cluster_init_creates_cluster_yaml(project_dir):
+    from ops_cluster.kubewi.commands import _init
+    _init(Namespace(output=None, force=False))
+    assert (project_dir / 'cluster.yaml').exists()
+
+
+def test_cluster_init_output_contains_nodes(project_dir):
+    from ops_cluster.kubewi.commands import _init
+    _init(Namespace(output=None, force=False))
+    content = (project_dir / 'cluster.yaml').read_text()
+    assert 'nodes:' in content
+    assert 'controller-01' in content
+
+
+def test_cluster_init_force_overwrites(project_dir):
+    from ops_cluster.kubewi.commands import _init
+    output = project_dir / 'cluster.yaml'
+    output.write_text('old content')
+    _init(Namespace(output=None, force=True))
+    assert 'old content' not in output.read_text()
+
+
+# ── wifi / vault ──────────────────────────────────────────────────────────────
+
+
+def test_wifi_calls_make(mock_subprocess, project_dir):
+    from ops_cluster.kubewi.commands import run_cmd
+    run_cmd(Namespace(cluster_cmd='wifi'))
+    assert any('make' in c and 'wifi' in c for c in _cmds(mock_subprocess))
+
+
+def test_vault_encrypt_calls_make(mock_subprocess, project_dir):
+    from ops_cluster.kubewi.commands import run_cmd
+    run_cmd(Namespace(cluster_cmd='vault-encrypt'))
+    assert any('make' in c and 'vault-encrypt' in c for c in _cmds(mock_subprocess))

@@ -8,7 +8,6 @@ from adp_ansible.kubewi import lib as ansible
 NAME          = 'cluster'
 _PKG_DIR      = Path(__file__).parent.parent
 _PACKAGES_DIR = _PKG_DIR.parent
-_WORK_DIR     = _PKG_DIR.parent.parent / 'work'   # /workspace/work
 PLAYBOOKS     = _PKG_DIR / 'playbooks'
 
 
@@ -16,43 +15,61 @@ def register(sub) -> None:
     p = sub.add_parser('cluster', help='Gestion déclarative du cluster')
     s = p.add_subparsers(dest='cluster_cmd', metavar='CMD', required=True)
 
+    inv_p = s.add_parser('inventory-init', help='Crée un nouveau projet kubewi (hosts.yml + vault.yml)')
+    inv_p.add_argument('name', metavar='NOM', help='Nom du projet/cluster')
+    inv_p.add_argument('--dir', '-d', default='.', metavar='DIR', help='Répertoire parent (défaut: courant)')
+
     init_p = s.add_parser('init', help='Génère cluster.yaml — description déclarative de la stack')
-    init_p.add_argument('--output', '-o', default=str(_WORK_DIR / 'cluster.yaml'), metavar='FILE')
-    init_p.add_argument('--force',  '-f', action='store_true',    help='Écraser si existe')
+    init_p.add_argument('--output', '-o', default=None, metavar='FILE')
+    init_p.add_argument('--force',  '-f', action='store_true', help='Écraser si existe')
 
     status_p = s.add_parser('status', help='Affiche l\'état désiré vs enrollé')
-    status_p.add_argument('--cluster', default=str(_WORK_DIR / 'cluster.yaml'), metavar='FILE')
+    status_p.add_argument('--cluster', default=None, metavar='FILE')
 
     apply_p = s.add_parser('apply', help='Enrôle les nœuds manquants (cluster.yaml → hosts.yml)')
-    apply_p.add_argument('--cluster',  default=str(_WORK_DIR / 'cluster.yaml'), metavar='FILE')
+    apply_p.add_argument('--cluster',  default=None, metavar='FILE')
     apply_p.add_argument('--dry-run', '-n', action='store_true', help='Affiche le plan sans exécuter')
     apply_p.add_argument('--yes',     '-y', action='store_true', help='Skip la confirmation')
 
-    s.add_parser('inventory-init',  help='Crée hosts.yml et vault.yml depuis les exemples')
-    s.add_parser('wifi',            help='Renseigne les credentials WiFi dans vault.yml')
-    s.add_parser('vault-encrypt',   help='Chiffre vault.yml avec ansible-vault')
-    s.add_parser('vault-edit',      help='Édite le vault chiffré')
-    s.add_parser('system',          help='Applique la configuration système sur tous les nœuds')
-    s.add_parser('network',         help='Applique la configuration réseau sur tous les nœuds')
-    s.add_parser('stack',           help='Déploie la stack complète (system + network + k0s)')
+    s.add_parser('wifi',          help='Renseigne les credentials WiFi dans vault.yml')
+    s.add_parser('vault-encrypt', help='Chiffre vault.yml avec ansible-vault')
+    s.add_parser('vault-edit',    help='Édite le vault chiffré')
+    s.add_parser('system',        help='Applique la configuration système sur tous les nœuds')
+    s.add_parser('network',       help='Applique la configuration réseau sur tous les nœuds')
+    s.add_parser('stack',         help='Déploie la stack complète (system + network + k0s)')
 
 
 def run_cmd(args) -> None:
-    if args.cluster_cmd == 'init':    _init(args);   return
-    if args.cluster_cmd == 'status':  _status(args); return
-    if args.cluster_cmd == 'apply':   _apply(args);  return
+    if args.cluster_cmd == 'inventory-init': _inventory_init(args); return
+    if args.cluster_cmd == 'init':           _init(args);           return
+    if args.cluster_cmd == 'status':         _status(args);         return
+    if args.cluster_cmd == 'apply':          _apply(args);          return
 
-    make_targets = {'inventory-init', 'wifi', 'vault-encrypt', 'vault-edit'}
+    make_targets = {'wifi', 'vault-encrypt', 'vault-edit'}
     if args.cluster_cmd in make_targets:
-        ansible.run_make(args.cluster_cmd.replace('inventory-init', 'init'))
+        ansible.run_make(args.cluster_cmd)
     else:
         ansible.run_playbook(PLAYBOOKS / f'{args.cluster_cmd}.yml')
+
+
+# ── inventory-init ───────────────────────────────────────────────────────────
+
+def _inventory_init(args) -> None:
+    from kubewi._project import init as project_init
+    parent      = Path(getattr(args, 'dir', '.'))
+    project_dir = project_init(args.name, parent)
+    print(f"\n  ✓ Projet '{args.name}' créé dans {project_dir.resolve()}")
+    print(f"  → cd {project_dir.resolve()}")
+    print(f"  → Éditer hosts.yml")
+    print(f"  → kubewi cluster init  (génère cluster.yaml)\n")
 
 
 # ── init ─────────────────────────────────────────────────────────────────────
 
 def _init(args) -> None:
-    output = Path(args.output)
+    from kubewi._project import resolve
+    project_dir = resolve()
+    output      = Path(args.output) if args.output else project_dir / 'cluster.yaml'
     if output.exists() and not args.force:
         print(f"  ✗ {output} existe déjà  (--force pour écraser)")
         sys.exit(1)
@@ -117,7 +134,9 @@ nodes:
 
 # ── apply / status ────────────────────────────────────────────────────────────
 
-_HOSTS_YML = _WORK_DIR / 'hosts.yml'
+def _hosts_yml() -> Path:
+    from kubewi._project import resolve
+    return resolve() / 'hosts.yml'
 
 
 def _status(args) -> None:
@@ -149,7 +168,9 @@ def _apply(args) -> None:
 
 
 def _compute_plan(args):
-    cluster_file = Path(getattr(args, 'cluster', 'cluster.yaml'))
+    from kubewi._project import resolve
+    project_dir  = resolve()
+    cluster_file = Path(args.cluster) if args.cluster else project_dir / 'cluster.yaml'
     if not cluster_file.exists():
         print(f"  ✗ {cluster_file} introuvable — lancez d'abord : kubewi cluster init")
         sys.exit(1)
@@ -172,16 +193,17 @@ def _load_cluster_yaml(path: Path) -> dict:
 
 def _load_enrolled_nodes() -> dict:
     """Returns {hostname: 'controller'|'worker'} parsed from hosts.yml groups."""
-    if not _HOSTS_YML.exists():
+    hosts_yml = _hosts_yml()
+    if not hosts_yml.exists():
         return {}
 
     try:
         from ruamel.yaml import YAML
         _yaml = YAML()
-        raw = dict(_yaml.load(_HOSTS_YML.read_text()) or {})
+        raw = dict(_yaml.load(hosts_yml.read_text()) or {})
     except ImportError:
         import yaml as _y
-        raw = _y.safe_load(_HOSTS_YML.read_text()) or {}
+        raw = _y.safe_load(hosts_yml.read_text()) or {}
 
     result = {}
 

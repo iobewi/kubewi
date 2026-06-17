@@ -1,0 +1,6 @@
+# Runtime state — spécifique à votre déploiement, non versionné
+cluster.yaml
+hosts.yml
+vault.yml
+kubeconfig
+group_vars/

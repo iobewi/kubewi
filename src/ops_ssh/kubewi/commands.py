@@ -22,10 +22,13 @@ from ruamel.yaml import YAML
 
 from kubewi._utils import banner, run
 
-NAME           = 'ssh'
-_WORK_DIR      = Path(__file__).parent.parent.parent.parent / 'work'   # /workspace/work
-INVENTORY_FILE = _WORK_DIR / 'hosts.yml'
-SSH_KEY        = Path.home() / '.ssh' / 'kubewi_ansible'
+NAME     = 'ssh'
+SSH_KEY  = Path.home() / '.ssh' / 'kubewi_ansible'
+
+
+def _inventory() -> Path:
+    from kubewi._project import resolve
+    return resolve() / 'hosts.yml'
 SSH_CONFIG     = Path.home() / '.ssh' / 'config'
 WG_INTERFACE   = 'wg0-sdk'
 
@@ -34,19 +37,19 @@ WG_INTERFACE   = 'wg0-sdk'
 
 def _gateway_name() -> str:
     yaml = YAML()
-    with open(INVENTORY_FILE) as f:
+    with open(_inventory()) as f:
         data = yaml.load(f)
     gateways = data['all']['children']['kubernetes']['children']['controllers']['children']['gateways']['hosts']
     return next(iter(gateways))
 
 
 def config_main() -> None:
-    if not INVENTORY_FILE.exists():
-        print(f"  ✗ {INVENTORY_FILE} absent — lancer kubewi ansible init d'abord")
+    if not _inventory().exists():
+        print(f"  ✗ {_inventory()} absent — lancer kubewi ansible init d'abord")
         sys.exit(1)
 
     yaml = YAML()
-    with open(INVENTORY_FILE) as f:
+    with open(_inventory()) as f:
         data = yaml.load(f)
 
     gateways     = data['all']['children']['kubernetes']['children']['controllers']['children']['gateways']['hosts']
@@ -80,8 +83,8 @@ def config_main() -> None:
 # ── ssh init ──────────────────────────────────────────────────────────────────
 
 def init_main() -> None:
-    if not INVENTORY_FILE.exists():
-        print(f"  ✗ {INVENTORY_FILE} absent — lancer kubewi ansible init d'abord")
+    if not _inventory().exists():
+        print(f"  ✗ {_inventory()} absent — lancer kubewi ansible init d'abord")
         sys.exit(1)
 
     banner('KubeWI — Initialisation SSH')
@@ -116,7 +119,7 @@ def _push_key(group: str, label: str) -> None:
     print(f'\n  Étape {label}')
     print(f'  → Entrer le mot de passe de iobewi')
     r = subprocess.run([
-        'ansible', group, '-i', str(INVENTORY_FILE),
+        'ansible', group, '-i', str(_inventory()),
         '-m', 'ansible.posix.authorized_key',
         '-a', f"user=iobewi key='{pubkey}'",
         '-k',
