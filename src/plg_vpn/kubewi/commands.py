@@ -73,13 +73,13 @@ def _generate_keys() -> None:
     sdk_pub  = wg_pubkey(sdk_key)
 
     v = vault.read_text()
-    v = re.sub(r'vault_wg_controller_private_key:.*', f'vault_wg_controller_private_key: "{ctrl_key}"', v)
-    v = re.sub(r'vault_wg_sdk_private_key:.*',        f'vault_wg_sdk_private_key: "{sdk_key}"',        v)
+    v = re.sub(r'vault_vpn_controller_private_key:.*', f'vault_vpn_controller_private_key: "{ctrl_key}"', v)
+    v = re.sub(r'vault_vpn_sdk_private_key:.*',        f'vault_vpn_sdk_private_key: "{sdk_key}"',        v)
     vault.write_text(v)
 
     h = hosts.read_text()
-    h = re.sub(r'wg_controller_pubkey:.*', f'wg_controller_pubkey: "{ctrl_pub}"', h)
-    h = re.sub(r'wg_sdk_pubkey:.*',        f'wg_sdk_pubkey: "{sdk_pub}"',        h)
+    h = re.sub(r'vpn_controller_pubkey:.*', f'vpn_controller_pubkey: "{ctrl_pub}"', h)
+    h = re.sub(r'vpn_sdk_pubkey:.*',        f'vpn_sdk_pubkey: "{sdk_pub}"',        h)
     hosts.write_text(h)
 
     print(f"  ✓ vault.yml mis à jour (clés privées — à chiffrer !)")

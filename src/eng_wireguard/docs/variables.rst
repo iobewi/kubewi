@@ -27,6 +27,6 @@ Variables
      - ``192.168.22/42/62.0/24``
      - Sous-réseaux VLAN routés dans le tunnel
 
-Les clés privées (``vault_wg_controller_private_key``,
-``vault_wg_sdk_private_key``) sont dans ``inventory/group_vars/all/vault.yml``
-et injectées via ``kubewi ansible wireguard-keys``.
+Les clés privées (``vault_vpn_controller_private_key``,
+``vault_vpn_sdk_private_key``) sont dans ``inventory/group_vars/all/vault.yml``
+et injectées via ``kubewi vpn generate-keys``.

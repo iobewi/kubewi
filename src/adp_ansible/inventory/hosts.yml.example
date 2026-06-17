@@ -21,8 +21,8 @@ all:
                     - eth1
                   network_provisioning_ip: "192.168.0.1/24"
                   # Requis — généré par : kubewi vpn generate-keys
-                  wg_controller_pubkey: ""
-                  wg_sdk_pubkey: ""
+                  vpn_controller_pubkey: ""
+                  vpn_sdk_pubkey: ""
 
                   # Optionnel — WiFi AP (hostapd)
                   # Décommenter pour activer le point d'accès WiFi

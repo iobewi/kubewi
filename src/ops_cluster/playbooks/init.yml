@@ -38,4 +38,4 @@
     ansible_host: "{{ init_host }}"
   roles:
     - role: wireguard
-      when: wg_controller_pubkey | default('') != ''
+      when: vpn_controller_pubkey | default('') != ''
