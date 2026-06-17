@@ -42,7 +42,9 @@ def init(name: str, parent: Path) -> Path:
     """Crée un répertoire projet avec marqueur et fichiers template."""
     project_dir = parent / name
     if project_dir.exists():
-        print(f"  ✗ {project_dir} existe déjà")
+        print(f"  ✗ '{name}' existe déjà : {project_dir.resolve()}")
+        print(f"  → Pour utiliser ce projet : cd {project_dir.resolve()}")
+        print(f"  → Ou définir              : export {ENV_VAR}={project_dir.resolve()}")
         sys.exit(1)
 
     project_dir.mkdir(parents=True)
