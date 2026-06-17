@@ -7,17 +7,7 @@ YES            ?=
 SINGLE         ?=
 DRY_RUN        ?=
 
-.PHONY: wifi wireguard-keys vault-encrypt vault-edit
-
-# ── WiFi ──────────────────────────────────────────────────────────────────────
-
-wifi:
-	@test -f $(INVENTORY)/group_vars/all/vault.yml \
-		|| { echo "vault.yml absent — lancer make ansible-init d'abord"; exit 1; }
-	@read -p "SSID WiFi : " ssid; \
-	read -s -p "PSK WiFi  : " psk; echo; \
-	python3 scripts/inject_wifi.py $(INVENTORY)/group_vars/all/vault.yml "$$ssid" "$$psk"
-	@echo "  ✓ Credentials WiFi mis à jour dans vault.yml"
+.PHONY: wireguard-keys vault-encrypt vault-edit
 
 # ── WireGuard ─────────────────────────────────────────────────────────────────
 
