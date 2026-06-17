@@ -19,6 +19,23 @@ import sys
 from ._discovery import discover
 from ._pkgmgr   import cmd_list, cmd_search, cmd_info_name, print_help
 
+
+class _FrParser(argparse.ArgumentParser):
+    """ArgumentParser avec messages d'erreur en français."""
+
+    def error(self, message: str) -> None:
+        message = (message
+            .replace('the following arguments are required:', 'argument(s) requis :')
+            .replace('expected one argument',                 'un argument est attendu')
+            .replace('expected at most one argument',         'un argument maximum attendu')
+            .replace('unrecognized arguments:',               'arguments non reconnus :')
+            .replace('invalid choice:',                       'choix invalide :')
+            .replace('(choose from',                          '(valeurs possibles :')
+            .replace('argument',                              'argument')
+        )
+        self.print_usage(sys.stderr)
+        self.exit(2, f'{self.prog}: erreur: {message}\n')
+
 _MODULES: dict = {}
 
 _TYPE_LABELS = {
@@ -31,7 +48,7 @@ _TYPE_LABELS = {
 
 def build_parser() -> argparse.ArgumentParser:
     global _MODULES
-    parser = argparse.ArgumentParser(prog='kubewi', add_help=False)
+    parser = _FrParser(prog='kubewi', add_help=False)
 
     # ── flags gestionnaire de packages ───────────────────────────
     parser.add_argument('-h', '--help',   action='store_true')
@@ -42,7 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument('--info',         metavar='PACKAGE',    help='Détails d\'un package')
 
     # ── dispatch vers un package ─────────────────────────────────
-    sub = parser.add_subparsers(dest='package')
+    sub = parser.add_subparsers(dest='package', parser_class=_FrParser)
     _MODULES = discover()
     for mod in dict.fromkeys(_MODULES.values()):
         mod.register(sub)
