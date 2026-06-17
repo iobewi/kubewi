@@ -116,10 +116,108 @@ def _wifi() -> None:
     print(f"\n  → Chiffrer : kubewi cluster vault-encrypt\n")
 
 
+# ── init helpers ─────────────────────────────────────────────────────────────
+
+def _cluster_name(project_dir: Path) -> str:
+    from kubewi._project import MARKER
+    try:
+        import yaml as _y
+        meta = _y.safe_load((project_dir / MARKER).read_text()) or {}
+        return meta.get('name', project_dir.name)
+    except Exception:
+        return project_dir.name
+
+
+def _nodes_block_from_hosts(project_dir: Path) -> str:
+    """Lit hosts.yml et génère le bloc nodes: du cluster.yaml."""
+    hosts_path = project_dir / 'hosts.yml'
+    if not hosts_path.exists():
+        return _nodes_block_example()
+
+    try:
+        raw = _load_cluster_yaml(hosts_path)  # réutilise le même parseur YAML
+    except Exception:
+        return _nodes_block_example()
+
+    controllers: list[tuple[str, dict]] = []
+    workers:     list[tuple[str, dict]] = []
+
+    def _collect(node: dict, group: str) -> None:
+        if not isinstance(node, dict):
+            return
+        for hostname, hvars in (node.get('hosts') or {}).items():
+            hvars = dict(hvars or {})
+            if group == 'controller':
+                controllers.append((hostname, hvars))
+            elif group == 'worker':
+                workers.append((hostname, hvars))
+        for child_name, child_data in (node.get('children') or {}).items():
+            g = 'controller' if child_name in ('controllers', 'gateways') \
+                else 'worker'  if child_name == 'workers' \
+                else group
+            _collect(child_data or {}, g)
+
+    _collect(raw.get('all', {}), '')
+
+    if not controllers and not workers:
+        return _nodes_block_example()
+
+    lines: list[str] = []
+    for name, hvars in controllers:
+        host_id = hvars.get('host_id', '')
+        ip_hint = f'192.168.22.{host_id}' if host_id else '192.168.22.1  # à vérifier'
+        lines.append(f'  {name}:')
+        lines.append(f'    ip: {ip_hint}')
+        lines.append(f'    profile: x86           # à ajuster : x86 | rpi5')
+        lines.append(f'    role_group: gateway')
+        lines.append(f'    k0s: controller')
+        lines.append('')
+
+    if workers:
+        for name, hvars in workers:
+            host_id = hvars.get('host_id', '')
+            ip_hint = f'192.168.22.{host_id}' if host_id else '192.168.22.x  # à vérifier'
+            lines.append(f'  {name}:')
+            lines.append(f'    ip: {ip_hint}')
+            lines.append(f'    profile: rpi5          # à ajuster : x86 | rpi5')
+            lines.append(f'    role_group: base')
+            lines.append(f'    k0s: worker')
+            lines.append('')
+    else:
+        lines += [
+            '  # Workers — ajoutés automatiquement par kubewi cluster apply',
+            '  # worker-01:',
+            '  #   ip: 192.168.22.10',
+            '  #   profile: rpi5',
+            '  #   role_group: base',
+            '  #   k0s: worker',
+            '',
+        ]
+
+    return '\n'.join(lines)
+
+
+def _nodes_block_example() -> str:
+    return (
+        '  controller-01:\n'
+        '    ip: 192.168.22.1\n'
+        '    profile: x86           # à ajuster : x86 | rpi5\n'
+        '    role_group: gateway\n'
+        '    k0s: controller\n'
+        '\n'
+        '  # Workers — ajoutés automatiquement par kubewi cluster apply\n'
+        '  # worker-01:\n'
+        '  #   ip: 192.168.22.10\n'
+        '  #   profile: rpi5\n'
+        '  #   role_group: base\n'
+        '  #   k0s: worker\n'
+    )
+
+
 # ── init ─────────────────────────────────────────────────────────────────────
 
 def _init(args) -> None:
-    from kubewi._project import resolve
+    from kubewi._project import resolve, MARKER
     project_dir = resolve()
     output      = Path(args.output) if args.output else project_dir / 'cluster.yaml'
     if output.exists() and not args.force:
@@ -131,6 +229,9 @@ def _init(args) -> None:
     os_opts    = ' | '.join(os_pkgs)    if os_pkgs   else 'rpios | ubuntu | debian'
     roles_opts = ' | '.join(node_pkgs)  if node_pkgs else 'k0s | gateway | vpn | ssh'
 
+    cluster_name = _cluster_name(project_dir)
+    nodes_block  = _nodes_block_from_hosts(project_dir)
+
     content = f"""\
 # cluster.yaml — stack déclarative KubeWI
 # Généré par kubewi cluster init
@@ -139,7 +240,7 @@ def _init(args) -> None:
 # OS disponibles   : {os_opts}
 # Rôles disponibles: {roles_opts}
 
-name: kubewi
+name: {cluster_name}
 
 # Groupes de rôles — sets nommés de packages déployés sur un nœud
 role_groups:
@@ -160,24 +261,7 @@ host_profiles:
     ifaces: [eth0, eth1]
 
 nodes:
-  controller-01:
-    ip: 192.168.22.1
-    profile: x86
-    role_group: gateway
-    k0s: controller
-
-  worker-01:
-    ip: 192.168.22.10
-    profile: rpi5
-    role_group: base
-    k0s: worker
-
-  worker-02:
-    ip: 192.168.22.11
-    profile: rpi5
-    role_group: base
-    k0s: worker
-"""
+{nodes_block}"""
 
     output.write_text(content)
     print(f"\n  ✓ {output} généré")

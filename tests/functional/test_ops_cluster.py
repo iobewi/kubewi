@@ -50,11 +50,20 @@ def test_cluster_init_creates_cluster_yaml(project_dir):
 
 
 def test_cluster_init_output_contains_nodes(project_dir):
+    from kubewi._project import MARKER
     from ops_cluster.kubewi.commands import _init
+    # Ajouter un controller dans hosts.yml du projet
+    (project_dir / 'hosts.yml').write_text(
+        'all:\n  children:\n    kubernetes:\n      children:\n'
+        '        controllers:\n          children:\n'
+        '            gateways:\n              hosts:\n'
+        '                controller-01:\n                  host_id: 1\n'
+    )
     _init(Namespace(output=None, force=False))
     content = (project_dir / 'cluster.yaml').read_text()
     assert 'nodes:' in content
     assert 'controller-01' in content
+    assert 'name: test-cluster' in content  # nom depuis .kubewi-project
 
 
 def test_cluster_init_force_overwrites(project_dir):
