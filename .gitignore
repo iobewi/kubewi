@@ -3,6 +3,7 @@ artifacts/
 
 # Projets kubewi (créés par kubewi cluster inventory-init)
 teas/
+teas1/
 
 tmp/
 _old/
