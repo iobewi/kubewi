@@ -1,0 +1,23 @@
+plg_gateway:
+  init_host: "192.168.x.x"       # IP DHCP eth0 — premier run uniquement
+  network_external_iface: eth0
+  network_bridge_members:
+    - eth1
+  network_provisioning_ip: "192.168.0.1/24"
+
+  # Optionnel — WiFi AP (hostapd)
+  # wifi_ap:
+  #   iface: wlan0
+  #   bridge: br-wifi
+  #   vlan_id: 220
+  #   ssid: kubewi
+  #   passphrase: "{{ vault_wifi_ap_psk }}"
+  #   hw_mode: g
+  #   channel: 6
+  #   country: FR
+
+  # Optionnel — WiFi client (wpa_supplicant)
+  # network_wifi:
+  #   iface: wlan0
+  #   ssid: "{{ vault_wifi_ssid }}"
+  #   psk: "{{ vault_wifi_psk }}"

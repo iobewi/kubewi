@@ -12,7 +12,13 @@
 
 - name: Wait for k0s API to be ready
   ansible.builtin.wait_for:
-    host: "{{ k0s_api_address }}"
+    host: "{{ ansible_host }}"
     port: 6443
+    timeout: 120
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Wait for k0s to be fully initialized (status socket)
+  ansible.builtin.wait_for:
+    path: /run/k0s/status.sock
     timeout: 120
   ignore_errors: "{{ ansible_check_mode }}"

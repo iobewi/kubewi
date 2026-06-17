@@ -22,13 +22,21 @@ from ruamel.yaml import YAML
 
 from kubewi._utils import banner, run
 
-NAME     = 'ssh'
-SSH_KEY  = Path.home() / '.ssh' / 'kubewi_ansible'
+from ops_ssh.kubewi.lib import SSH_KEY
+
+NAME = 'ssh'
 
 
 def _inventory() -> Path:
     from kubewi._project import resolve
-    return resolve() / 'hosts.yml'
+    from kubewi._hostfile import generate_ansible_inventory
+    project   = resolve()
+    hosts_dir = project / 'hosts'
+    if not hosts_dir.exists() or not any(hosts_dir.glob('*.yml')):
+        print(f"  ✗ Aucun fichier host trouvé dans {hosts_dir}")
+        print(f"  → Créer un projet : kubewi cluster inventory-init <nom>")
+        sys.exit(1)
+    return generate_ansible_inventory(project)
 SSH_CONFIG     = Path.home() / '.ssh' / 'config'
 WG_INTERFACE   = 'wg0-sdk'
 
@@ -44,10 +52,6 @@ def _gateway_name() -> str:
 
 
 def config_main() -> None:
-    if not _inventory().exists():
-        print(f"  ✗ {_inventory()} absent — lancer kubewi ansible init d'abord")
-        sys.exit(1)
-
     yaml = YAML()
     with open(_inventory()) as f:
         data = yaml.load(f)
@@ -83,10 +87,6 @@ def config_main() -> None:
 # ── ssh init ──────────────────────────────────────────────────────────────────
 
 def init_main() -> None:
-    if not _inventory().exists():
-        print(f"  ✗ {_inventory()} absent — lancer kubewi ansible init d'abord")
-        sys.exit(1)
-
     banner('KubeWI — Initialisation SSH')
 
     gateway_name = _gateway_name()
@@ -107,11 +107,8 @@ def _check_vpn() -> None:
 
 
 def _generate_key() -> None:
-    if SSH_KEY.exists():
-        print(f'  - Clé {SSH_KEY} déjà présente, réutilisée')
-    else:
-        run(['ssh-keygen', '-t', 'ed25519', '-N', '', '-f', str(SSH_KEY), '-C', 'kubewi-ansible-sdk'])
-        print(f'  ✓ Clé générée : {SSH_KEY}')
+    from ops_ssh.kubewi.lib import ensure_key
+    ensure_key()
 
 
 def _push_key(group: str, label: str) -> None:

@@ -12,8 +12,8 @@ Plugin Provisioning
    * - Dépendances
      - :doc:`../adp_kube/index`
 
-Réseau DHCP de provisioning — lifecycle du pod dnsmasq pour l'enrollment
-des workers.
+Réseau DHCP de provisioning — lifecycle du pod dnsmasq et détection
+automatique des nœuds par leur adresse MAC pour l'enrollment dans le cluster.
 
 .. toctree::
    :maxdepth: 1

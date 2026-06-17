@@ -12,10 +12,13 @@ Ops Cluster
    * - Dépendances
      - :doc:`../adp_kube/index`,
        :doc:`../adp_ansible/index`,
-       :doc:`../plg_enroll/index`
+       :doc:`../ops_ssh/index`,
+       :doc:`../plg_vpn/index`,
+       :doc:`../plg_provisioning/index`,
+       :doc:`../eng_k0s/index`
 
-Cycle de vie déclaratif du cluster — description ``cluster.yaml``,
-enrollment guidé, déploiement de la stack complète.
+Cycle de vie déclaratif du cluster — bootstrap, ajout de nœuds, synchronisation
+de la configuration et déploiement de la stack complète.
 
 .. toctree::
    :maxdepth: 1

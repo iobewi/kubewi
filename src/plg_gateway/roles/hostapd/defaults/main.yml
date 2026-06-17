@@ -1,0 +1,6 @@
+host_id: "{{ ansible_host.split('.')[-1] }}"
+
+network_vlan_ips:
+  "220": "192.168.22.{{ host_id }}/24"
+  "420": "192.168.42.{{ host_id }}/24"
+  "620": "192.168.62.{{ host_id }}/24"

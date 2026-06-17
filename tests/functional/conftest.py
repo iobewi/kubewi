@@ -47,6 +47,20 @@ def project_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     project.mkdir()
     (project / MARKER).write_text('name: test-cluster\n')
     (project / 'group_vars' / 'all').mkdir(parents=True)
-    (project / 'hosts.yml').write_text('all:\n  children: {}\n')
+    (project / 'hosts').mkdir()
+    (project / 'cluster.yml').write_text('kubewi:\n  cluster:\n    name: test-cluster\n')
+    (project / 'hosts' / 'controller-01.yml').write_text(
+        'kubewi:\n  host:\n'
+        '    name: controller-01\n'
+        '    ansible_host: 10.0.100.1\n'
+        '    ansible_user: iobewi\n'
+        '    host_id: 1\n'
+        '    plg_gateway:\n'
+        '      init_host: "192.168.100.96"\n'
+        '      network_external_iface: enp2s0\n'
+        '      network_bridge_members: [enp1s0]\n'
+        '    eng_k0s:\n'
+        '      role: controller\n'
+    )
     monkeypatch.setenv('KUBEWI_PROJECT', str(project))
     return project

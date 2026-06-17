@@ -1,0 +1,3 @@
+plg_vpn:
+  vpn_controller_pubkey: ""  # généré par : kubewi vpn generate-keys
+  vpn_sdk_pubkey: ""

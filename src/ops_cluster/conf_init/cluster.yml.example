@@ -1,0 +1,4 @@
+kubewi:
+  cluster:
+    name: mon-cluster
+    gateway: controller-01   # nœud VPN + adresse .1 sur tous les VLANs

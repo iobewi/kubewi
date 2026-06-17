@@ -15,22 +15,34 @@ def register(sub) -> None:
     p = sub.add_parser('cluster', help='Gestion déclarative du cluster')
     s = p.add_subparsers(dest='cluster_cmd', metavar='CMD', required=True)
 
-    inv_p = s.add_parser('inventory-init', help='Crée un nouveau projet kubewi (hosts.yml + vault.yml)')
+    inv_p = s.add_parser('inventory-init', help='Crée un nouveau projet kubewi')
     inv_p.add_argument('name', metavar='NOM', help='Nom du projet/cluster')
     inv_p.add_argument('--dir', '-d', default='.', metavar='DIR', help='Répertoire parent (défaut: courant)')
 
-    init_p = s.add_parser('init', help='Génère cluster.yaml — description déclarative de la stack')
-    init_p.add_argument('--output', '-o', default=None, metavar='FILE')
-    init_p.add_argument('--force',  '-f', action='store_true', help='Écraser si existe')
+    s.add_parser('init',   help='Génère hosts.yml (inventaire Ansible) depuis hosts/*.yml')
 
-    status_p = s.add_parser('status', help='Affiche l\'état désiré vs enrollé')
-    status_p.add_argument('--cluster', default=None, metavar='FILE')
+    s.add_parser('create', help='Bootstrap le controller gateway et le renomme via MAC')
 
-    apply_p = s.add_parser('apply', help='Enrôle les nœuds manquants (cluster.yaml → hosts.yml)')
-    apply_p.add_argument('--cluster',  default=None, metavar='FILE')
+    s.add_parser('status', help='Affiche l\'état désiré vs enrollé')
+
+    apply_p = s.add_parser('apply', help='Enrôle les nœuds manquants')
     apply_p.add_argument('--dry-run', '-n', action='store_true', help='Affiche le plan sans exécuter')
     apply_p.add_argument('--yes',     '-y', action='store_true', help='Skip la confirmation')
 
+    add_p = s.add_parser('add', help='Ajoute un nœud au cluster existant')
+    add_s = add_p.add_subparsers(dest='add_role', metavar='ROLE', required=True)
+
+    add_w = add_s.add_parser('worker', help='Ajoute un worker (auto-détection ou fichier host existant)')
+    add_w.add_argument('name', nargs='?', metavar='NAME', help='Nom du worker (mode manuel, fichier hosts/<NAME>.yml requis)')
+    add_w.add_argument('--ifaces', type=int, choices=[1, 2], default=2)
+    add_w.add_argument('--dry-run', '-n', action='store_true')
+    add_w.add_argument('--yes', '-y', action='store_true')
+
+    add_c = add_s.add_parser('controller', help='Ajoute un controller secondaire (fichier hosts/<NAME>.yml requis)')
+    add_c.add_argument('name', metavar='NAME')
+    add_c.add_argument('--yes', '-y', action='store_true')
+
+    s.add_parser('kubeconfig',     help='Récupère le kubeconfig depuis le controller et configure kubectl')
     s.add_parser('wifi',          help='Renseigne les credentials WiFi dans vault.yml')
     s.add_parser('vault-encrypt', help='Chiffre vault.yml avec ansible-vault')
     s.add_parser('vault-edit',    help='Édite le vault chiffré')
@@ -41,14 +53,270 @@ def register(sub) -> None:
 
 def run_cmd(args) -> None:
     if args.cluster_cmd == 'inventory-init': _inventory_init(args); return
-    if args.cluster_cmd == 'init':           _init(args);           return
+    if args.cluster_cmd == 'init':           _init();               return
+    if args.cluster_cmd == 'create':         _create();             return
     if args.cluster_cmd == 'status':         _status(args);         return
     if args.cluster_cmd == 'apply':          _apply(args);          return
+    if args.cluster_cmd == 'add':
+        if args.add_role == 'worker':     _add_worker(args)
+        elif args.add_role == 'controller': _add_controller(args)
+        return
+    if args.cluster_cmd == 'kubeconfig':     _kubeconfig();         return
     if args.cluster_cmd == 'wifi':           _wifi();               return
     if args.cluster_cmd == 'vault-encrypt':  _vault_cmd('encrypt'); return
     if args.cluster_cmd == 'vault-edit':     _vault_cmd('edit');    return
 
     ansible.run_playbook(PLAYBOOKS / f'{args.cluster_cmd}.yml')
+
+
+# ── kubeconfig ───────────────────────────────────────────────────────────────
+
+def _kubeconfig() -> None:
+    from eng_k0s.scripts.kubeconfig import main as fetch
+    fetch()
+
+
+# ── create ───────────────────────────────────────────────────────────────────
+
+def _create() -> None:
+    import getpass, os, subprocess
+    from kubewi._project import resolve
+    from kubewi._hostfile import load_cluster, find_gateway_host_path, load_host, mac_to_id
+    from kubewi._hostfile import generate_ansible_inventory
+    from ops_ssh.kubewi.lib import ensure_key, SSH_KEY
+    from plg_vpn.kubewi.lib import up as vpn_up
+
+    ensure_key()
+    project_dir = resolve()
+    cluster     = load_cluster(project_dir)
+    gw_name     = cluster.get('gateway', '')
+
+    # Trouver le fichier host du gateway
+    gw_path = (project_dir / 'hosts' / f'{gw_name}.yml') if gw_name else None
+    if not gw_path or not gw_path.exists():
+        gw_path = find_gateway_host_path(project_dir)
+    if not gw_path:
+        print("  ✗ Aucun host gateway trouvé dans hosts/")
+        print("  → Vérifier que cluster.yml contient un champ 'gateway'")
+        sys.exit(1)
+
+    data        = load_host(gw_path)
+    name        = data.get('name', gw_path.stem)
+    init_host   = (data.get('plg_gateway') or {}).get('init_host') or data.get('ansible_host', '')
+    ansible_user = data.get('ansible_user', 'iobewi')
+    iface       = ((data.get('plg_gateway') or {}).get('network_bridge_members') or [''])[0]
+
+    if not init_host:
+        print(f"  ✗ init_host absent dans {gw_path.name}")
+        sys.exit(1)
+
+    print(f"\n  Bootstrap gateway : {name}  ({init_host})\n")
+
+    env   = os.environ.copy()
+    key_ok = subprocess.run(
+        ['ssh', '-i', str(SSH_KEY),
+         '-o', 'PasswordAuthentication=no', '-o', 'BatchMode=yes',
+         '-o', 'StrictHostKeyChecking=no', '-o', 'ConnectTimeout=5',
+         f'{ansible_user}@{init_host}', 'true'],
+        capture_output=True,
+    ).returncode == 0
+
+    if key_ok:
+        print(f"  Bootstrap (clé SSH)...")
+        ansible.run_playbook(PLAYBOOKS / 'init.yml', '--limit', name, env=env)
+    else:
+        become_pass = getpass.getpass(f"  Mot de passe SSH (premier accès) : ")
+        env['ANSIBLE_BECOME_PASS'] = become_pass
+        print(f"  Bootstrap (premier accès)...")
+        ansible.run_playbook(PLAYBOOKS / 'init.yml', '--limit', name, '-k', env=env)
+
+    # Récupérer la MAC et renommer
+    mac     = _fetch_mac(init_host, ansible_user, iface)
+    node_id = mac_to_id(mac)
+    new_name = f"controller-{node_id}"
+
+    if new_name != name:
+        print(f"  Renommage {name} → {new_name} (MAC {mac})...")
+        _rename_host(gw_path, new_name)
+        _update_cluster_gateway(project_dir, new_name)
+        generate_ansible_inventory(project_dir)
+        print(f"  ✓ hosts/{new_name}.yml  |  gateway: {new_name}")
+    else:
+        print(f"  Nom déjà cohérent : {new_name}")
+
+    print(f"\n  Montée du tunnel VPN SDK...")
+    vpn_up()
+    _wait_vpn_ready(new_name, data)
+
+    print(f"  Synchronisation gateway...")
+    ansible.run_playbook(PLAYBOOKS / 'gateway.yml', '--limit', new_name, env=env)
+
+    from adp_kube.kubewi import lib as kube
+    kube.add_controller(new_name)
+
+    print(f"\n  ✓ Cluster créé — controller : {new_name}\n")
+
+
+def _fetch_mac(init_host: str, user: str, iface: str) -> str:
+    """Récupère la MAC d'une interface via SSH."""
+    import subprocess
+    from ops_ssh.kubewi.lib import SSH_KEY
+    r = subprocess.run(
+        ['ssh', '-i', str(SSH_KEY),
+         '-o', 'StrictHostKeyChecking=no', '-o', 'ConnectTimeout=10',
+         f'{user}@{init_host}',
+         f'cat /sys/class/net/{iface}/address'],
+        capture_output=True, text=True,
+    )
+    if r.returncode != 0 or not r.stdout.strip():
+        print(f"  ✗ Impossible de lire la MAC de {iface} sur {init_host}")
+        sys.exit(1)
+    return r.stdout.strip()
+
+
+def _rename_host(path: Path, new_name: str) -> None:
+    """Renomme le fichier host et met à jour le champ name à l'intérieur."""
+    from ruamel.yaml import YAML
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    with open(path) as f:
+        data = yaml.load(f)
+    data['kubewi']['host']['name'] = new_name
+    with open(path, 'w') as f:
+        yaml.dump(data, f)
+    path.rename(path.parent / f'{new_name}.yml')
+
+
+def _update_cluster_gateway(project_dir: Path, new_name: str) -> None:
+    """Met à jour le champ gateway dans cluster.yml."""
+    from ruamel.yaml import YAML
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    path = project_dir / 'cluster.yml'
+    with open(path) as f:
+        data = yaml.load(f)
+    data['kubewi']['cluster']['gateway'] = new_name
+    with open(path, 'w') as f:
+        yaml.dump(data, f)
+
+
+# ── add worker ───────────────────────────────────────────────────────────────
+
+def _add_worker(args) -> None:
+    import getpass
+    from kubewi._project import resolve
+    from kubewi._hostfile import generate_ansible_inventory, load_host
+    from adp_kube.kubewi import lib as kube
+
+    project_dir = resolve()
+
+    if args.name:
+        host_path = project_dir / 'hosts' / f'{args.name}.yml'
+        if not host_path.exists():
+            print(f"  ✗ Fichier host introuvable : {host_path}")
+            print(f"  → Créer hosts/{args.name}.yml ou lancer sans nom pour la détection auto")
+            sys.exit(1)
+        data = load_host(host_path)
+        name = data.get('name', args.name)
+        print(f"\n  Ajout worker (manuel) : {name}\n")
+    else:
+        from plg_provisioning.kubewi.commands import _deploy, _scale
+        from plg_provisioning.kubewi.lib import detect_phase
+
+        print(f"\n  Ajout worker (auto-détection)\n")
+        _banner("Activation du réseau de provisioning")
+        _deploy()
+        _scale(1)
+        print("  ✓ DHCP provisioning actif\n")
+
+        try:
+            detected = detect_phase(args.ifaces, single=True, dry_run=args.dry_run)
+        finally:
+            try:
+                _scale(0)
+            except SystemExit:
+                print("  ✗ Échec désactivation provisioning")
+                print("  → Désactiver manuellement : kubewi provisioning off")
+
+        if not detected:
+            print("  ✗ Aucun nœud détecté.")
+            sys.exit(1)
+
+        name = detected[0][0]
+        print(f"\n  ✓ Nœud détecté : {name}")
+
+        if args.dry_run:
+            print(f"  [DRY-RUN] Aurait enrôlé : {name}")
+            return
+
+    generate_ansible_inventory(project_dir)
+
+    become_pass = getpass.getpass(f"  Mot de passe SSH {name} (premier accès) : ")
+    print(f"\n  Bootstrap réseau {name}...")
+    kube.worker_init(name, become_pass)
+    print(f"\n  Enrôlement k0s {name}...")
+    kube.add_worker(name)
+    print(f"\n  ✓ {name} est membre du cluster Kubernetes\n")
+
+
+# ── add controller ────────────────────────────────────────────────────────────
+
+def _add_controller(args) -> None:
+    import getpass, os, subprocess
+    from kubewi._project import resolve
+    from kubewi._hostfile import generate_ansible_inventory, load_host
+    from adp_kube.kubewi import lib as kube
+    from ops_ssh.kubewi.lib import ensure_key, SSH_KEY
+
+    ensure_key()
+    project_dir = resolve()
+    host_path   = project_dir / 'hosts' / f'{args.name}.yml'
+    if not host_path.exists():
+        print(f"  ✗ Fichier host introuvable : {host_path}")
+        print(f"  → Créer hosts/{args.name}.yml avant d'ajouter ce controller")
+        sys.exit(1)
+
+    data         = load_host(host_path)
+    name         = data.get('name', args.name)
+    init_host    = (data.get('plg_gateway') or {}).get('init_host') or data.get('ansible_host', '')
+    ansible_user = data.get('ansible_user', 'iobewi')
+
+    if not init_host:
+        print(f"  ✗ ansible_host ou init_host absent dans {host_path.name}")
+        sys.exit(1)
+
+    if not args.yes:
+        try:
+            ans = input(f"  Ajouter le controller {name} ({init_host}) ? [o/N] ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("\n  Annulé.")
+            return
+        if ans not in ('o', 'oui', 'y', 'yes'):
+            print("  Annulé.")
+            return
+
+    generate_ansible_inventory(project_dir)
+    env    = os.environ.copy()
+    key_ok = subprocess.run(
+        ['ssh', '-i', str(SSH_KEY),
+         '-o', 'PasswordAuthentication=no', '-o', 'BatchMode=yes',
+         '-o', 'StrictHostKeyChecking=no', '-o', 'ConnectTimeout=5',
+         f'{ansible_user}@{init_host}', 'true'],
+        capture_output=True,
+    ).returncode == 0
+
+    if key_ok:
+        print(f"  Bootstrap {name} (clé SSH)...")
+        ansible.run_playbook(PLAYBOOKS / 'init.yml', '--limit', name, env=env)
+    else:
+        become_pass = getpass.getpass(f"  Mot de passe SSH {name} (premier accès) : ")
+        env['ANSIBLE_BECOME_PASS'] = become_pass
+        print(f"  Bootstrap {name} (premier accès)...")
+        ansible.run_playbook(PLAYBOOKS / 'init.yml', '--limit', name, '-k', env=env)
+
+    print(f"  Enrôlement k0s {name}...")
+    kube.add_controller(name)
+    print(f"\n  ✓ {name} est membre du cluster Kubernetes\n")
 
 
 # ── inventory-init ───────────────────────────────────────────────────────────
@@ -59,8 +327,9 @@ def _inventory_init(args) -> None:
     project_dir = project_init(args.name, parent)
     print(f"\n  ✓ Projet '{args.name}' créé dans {project_dir.resolve()}")
     print(f"  → cd {project_dir.resolve()}")
-    print(f"  → Éditer hosts.yml")
-    print(f"  → kubewi cluster init  (génère cluster.yaml)\n")
+    print(f"  → Éditer hosts/controller-01.yml")
+    print(f"  → kubewi vpn generate-keys")
+    print(f"  → kubewi cluster init  (génère l'inventaire Ansible)\n")
 
 
 # ── vault ────────────────────────────────────────────────────────────────────
@@ -116,176 +385,33 @@ def _wifi() -> None:
     print(f"\n  → Chiffrer : kubewi cluster vault-encrypt\n")
 
 
-# ── init helpers ─────────────────────────────────────────────────────────────
-
-def _cluster_name(project_dir: Path) -> str:
-    from kubewi._project import MARKER
-    try:
-        import yaml as _y
-        meta = _y.safe_load((project_dir / MARKER).read_text()) or {}
-        return meta.get('name', project_dir.name)
-    except Exception:
-        return project_dir.name
-
-
-def _nodes_block_from_hosts(project_dir: Path) -> str:
-    """Lit hosts.yml et génère le bloc nodes: du cluster.yaml."""
-    hosts_path = project_dir / 'hosts.yml'
-    if not hosts_path.exists():
-        return _nodes_block_example()
-
-    try:
-        raw = _load_cluster_yaml(hosts_path)  # réutilise le même parseur YAML
-    except Exception:
-        return _nodes_block_example()
-
-    controllers: list[tuple[str, dict]] = []
-    workers:     list[tuple[str, dict]] = []
-
-    def _collect(node: dict, group: str) -> None:
-        if not isinstance(node, dict):
-            return
-        for hostname, hvars in (node.get('hosts') or {}).items():
-            hvars = dict(hvars or {})
-            if group == 'controller':
-                controllers.append((hostname, hvars))
-            elif group == 'worker':
-                workers.append((hostname, hvars))
-        for child_name, child_data in (node.get('children') or {}).items():
-            g = 'controller' if child_name in ('controllers', 'gateways') \
-                else 'worker'  if child_name == 'workers' \
-                else group
-            _collect(child_data or {}, g)
-
-    _collect(raw.get('all', {}), '')
-
-    if not controllers and not workers:
-        return _nodes_block_example()
-
-    lines: list[str] = []
-    for name, hvars in controllers:
-        host_id = hvars.get('host_id', '')
-        ip_hint = f'192.168.22.{host_id}' if host_id else '192.168.22.1  # à vérifier'
-        lines.append(f'  {name}:')
-        lines.append(f'    ip: {ip_hint}')
-        lines.append(f'    profile: x86           # à ajuster : x86 | rpi5')
-        lines.append(f'    role_group: gateway')
-        lines.append(f'    k0s: controller')
-        lines.append('')
-
-    if workers:
-        for name, hvars in workers:
-            host_id = hvars.get('host_id', '')
-            ip_hint = f'192.168.22.{host_id}' if host_id else '192.168.22.x  # à vérifier'
-            lines.append(f'  {name}:')
-            lines.append(f'    ip: {ip_hint}')
-            lines.append(f'    profile: rpi5          # à ajuster : x86 | rpi5')
-            lines.append(f'    role_group: base')
-            lines.append(f'    k0s: worker')
-            lines.append('')
-    else:
-        lines += [
-            '  # Workers — ajoutés automatiquement par kubewi cluster apply',
-            '  # worker-01:',
-            '  #   ip: 192.168.22.10',
-            '  #   profile: rpi5',
-            '  #   role_group: base',
-            '  #   k0s: worker',
-            '',
-        ]
-
-    return '\n'.join(lines)
-
-
-def _nodes_block_example() -> str:
-    return (
-        '  controller-01:\n'
-        '    ip: 192.168.22.1\n'
-        '    profile: x86           # à ajuster : x86 | rpi5\n'
-        '    role_group: gateway\n'
-        '    k0s: controller\n'
-        '\n'
-        '  # Workers — ajoutés automatiquement par kubewi cluster apply\n'
-        '  # worker-01:\n'
-        '  #   ip: 192.168.22.10\n'
-        '  #   profile: rpi5\n'
-        '  #   role_group: base\n'
-        '  #   k0s: worker\n'
-    )
-
-
 # ── init ─────────────────────────────────────────────────────────────────────
 
-def _init(args) -> None:
-    from kubewi._project import resolve, MARKER
+def _init() -> None:
+    from kubewi._project import resolve
+    from kubewi._hostfile import generate_ansible_inventory
     project_dir = resolve()
-    output      = Path(args.output) if args.output else project_dir / 'cluster.yaml'
-    if output.exists() and not args.force:
-        print(f"  ✗ {output} existe déjà  (--force pour écraser)")
-        sys.exit(1)
-
-    os_pkgs    = _packages_by_type('os')
-    node_pkgs  = _node_role_packages()
-    os_opts    = ' | '.join(os_pkgs)    if os_pkgs   else 'rpios | ubuntu | debian'
-    roles_opts = ' | '.join(node_pkgs)  if node_pkgs else 'k0s | gateway | vpn | ssh'
-
-    cluster_name = _cluster_name(project_dir)
-    nodes_block  = _nodes_block_from_hosts(project_dir)
-
-    content = f"""\
-# cluster.yaml — stack déclarative KubeWI
-# Généré par kubewi cluster init
-# Modifiez ce fichier, puis lancez : kubewi cluster apply
-#
-# OS disponibles   : {os_opts}
-# Rôles disponibles: {roles_opts}
-
-name: {cluster_name}
-
-# Groupes de rôles — sets nommés de packages déployés sur un nœud
-role_groups:
-  base:
-    roles: [k0s, ssh]
-  gateway:
-    roles: [k0s, ssh, gateway, vpn]
-
-# Profils matériel — décrit le type de machine (arch, os, interfaces réseau)
-host_profiles:
-  rpi5:
-    arch: aarch64
-    os: rpios
-    ifaces: [eth0]
-  x86:
-    arch: x86_64
-    os: ubuntu
-    ifaces: [eth0, eth1]
-
-nodes:
-{nodes_block}"""
-
-    output.write_text(content)
-    print(f"\n  ✓ {output} généré")
-    print('  → Éditez le fichier, puis lancez : kubewi cluster apply\n')
+    inventory   = generate_ansible_inventory(project_dir)
+    print(f"\n  ✓ {inventory} généré")
+    print('  → kubewi cluster apply  (pour enrôler les nœuds)\n')
 
 
 # ── apply / status ────────────────────────────────────────────────────────────
 
-def _hosts_yml() -> Path:
-    from kubewi._project import resolve
-    return resolve() / 'hosts.yml'
-
-
 def _status(args) -> None:
-    cluster, enrolled, plan = _compute_plan(args)
-    _print_status(cluster, enrolled, plan)
+    hosts, cluster, plan = _compute_plan()
+    _print_status(hosts, cluster, plan)
 
 
 def _apply(args) -> None:
-    cluster, enrolled, plan = _compute_plan(args)
-    _print_status(cluster, enrolled, plan)
+    from kubewi._project import resolve
+    project_dir = resolve()
+    changed     = _sync_inventory(project_dir)
+    if changed:
+        print('  ↻ Inventaire mis à jour\n')
 
-    if not plan:
-        return
+    hosts, cluster, plan = _compute_plan()
+    _print_status(hosts, cluster, plan)
 
     if args.dry_run:
         return
@@ -303,219 +429,207 @@ def _apply(args) -> None:
     _execute(plan)
 
 
-def _compute_plan(args):
+def _sync_inventory(project_dir: Path) -> bool:
+    """Régénère hosts.yml et retourne True si le contenu a changé."""
+    import hashlib
+    from kubewi._hostfile import generate_ansible_inventory
+
+    inventory  = generate_ansible_inventory(project_dir)
+    new_hash   = hashlib.sha256(inventory.read_bytes()).hexdigest()
+
+    cache_file = project_dir / '.kubewi' / 'hosts.yml.hash'
+    cache_file.parent.mkdir(exist_ok=True)
+
+    old_hash   = cache_file.read_text().strip() if cache_file.exists() else ''
+    changed    = new_hash != old_hash
+    if changed:
+        cache_file.write_text(new_hash)
+    return changed
+
+
+def _compute_plan():
     from kubewi._project import resolve
-    project_dir  = resolve()
-    cluster_file = Path(args.cluster) if args.cluster else project_dir / 'cluster.yaml'
-    if not cluster_file.exists():
-        print(f"  ✗ {cluster_file} introuvable — lancez d'abord : kubewi cluster init")
+    from kubewi._hostfile import load_all_hosts, load_cluster
+    project_dir = resolve()
+    hosts_dir   = project_dir / 'hosts'
+    if not hosts_dir.exists() or not any(hosts_dir.glob('*.yml')):
+        print(f"  ✗ Aucun fichier host trouvé dans {hosts_dir}")
+        print(f"  → Créer un projet : kubewi cluster inventory-init <nom>")
         sys.exit(1)
 
-    cluster  = _load_cluster_yaml(cluster_file)
-    enrolled = _load_enrolled_nodes()
-    plan     = _build_plan(cluster, enrolled)
-    return cluster, enrolled, plan
+    hosts   = load_all_hosts(project_dir)
+    cluster = load_cluster(project_dir)
+    plan    = _build_plan(hosts)
+    return hosts, cluster, plan
 
 
-def _load_cluster_yaml(path: Path) -> dict:
-    try:
-        from ruamel.yaml import YAML
-        _yaml = YAML()
-        return dict(_yaml.load(path.read_text()) or {})
-    except ImportError:
-        import yaml as _y
-        return _y.safe_load(path.read_text()) or {}
-
-
-def _load_enrolled_nodes() -> dict:
-    """Returns {hostname: 'controller'|'worker'} parsed from hosts.yml groups."""
-    hosts_yml = _hosts_yml()
-    if not hosts_yml.exists():
-        return {}
-
-    try:
-        from ruamel.yaml import YAML
-        _yaml = YAML()
-        raw = dict(_yaml.load(hosts_yml.read_text()) or {})
-    except ImportError:
-        import yaml as _y
-        raw = _y.safe_load(hosts_yml.read_text()) or {}
-
-    result = {}
-
-    def _collect(node, group):
-        if not isinstance(node, dict):
-            return
-        for hostname in (node.get('hosts') or {}):
-            result[hostname] = group
-        for child_name, child_data in (node.get('children') or {}).items():
-            g = 'controller' if child_name in ('controllers', 'gateways') \
-                else 'worker'  if child_name == 'workers' \
-                else group
-            _collect(child_data or {}, g)
-
-    _collect(raw.get('all', {}), None)
-    return result
-
-
-def _resolve_node(node: dict, cluster: dict) -> dict:
-    """Merge host_profile + role_group into node — node fields take precedence."""
-    resolved = {}
-
-    profile_name = node.get('profile')
-    if profile_name:
-        profiles = cluster.get('host_profiles') or {}
-        resolved.update(dict(profiles.get(profile_name) or {}))
-
-    group_name = node.get('role_group')
-    if group_name:
-        groups = cluster.get('role_groups') or {}
-        resolved.update(dict(groups.get(group_name) or {}))
-
-    for k, v in node.items():
-        resolved[k] = v
-
-    return resolved
-
-
-def _build_plan(cluster: dict, enrolled: dict) -> list:
-    """Returns [(name, resolved_data, action), ...] — controllers before workers."""
-    desired = cluster.get('nodes') or {}
+def _build_plan(hosts: list[dict]) -> list:
+    """
+    Retourne [(reachable: bool, name: str, data: dict), ...] — controllers avant workers.
+    reachable = joignable via le réseau de gestion (ansible_host:22).
+    """
+    import socket
     plan = []
-
-    for name, node in desired.items():
-        node     = dict(node) if hasattr(node, 'items') else {}
-        resolved = _resolve_node(node, cluster)
-        if name not in enrolled:
-            plan.append((name, resolved, 'enroll'))
-
-    plan.sort(key=lambda x: 0 if x[1].get('k0s') == 'controller' else 1)
+    for h in hosts:
+        ip = h.get('ansible_host', '')
+        reachable = False
+        if ip:
+            try:
+                with socket.create_connection((ip, 22), timeout=3):
+                    reachable = True
+            except OSError:
+                pass
+        plan.append((reachable, h.get('name', ''), h))
+    plan.sort(key=lambda x: 0 if (x[2].get('eng_k0s') or {}).get('role') == 'controller' else 1)
     return plan
 
 
-def _print_status(cluster: dict, enrolled: dict, plan: list) -> None:
-    desired = cluster.get('nodes') or {}
-    nw = max((len(n) for n in desired), default=12) + 2
+def _print_status(hosts: list[dict], cluster: dict, plan: list) -> None:
+    by_name = {name: reachable for reachable, name, _ in plan}
+    nw = max((len(h.get('name', '')) for h in hosts), default=12) + 2
 
     print(f"\n  Cluster : {cluster.get('name', '—')}\n")
 
-    for name, node in desired.items():
-        node     = _resolve_node(dict(node) if hasattr(node, 'items') else {}, cluster)
-        k0s_role = node.get('k0s', '?')
-        profile  = node.get('profile', '')
-        group    = node.get('role_group', '')
-        pending  = any(n == name for n, _, _ in plan)
-        marker   = '→' if pending else '✓'
-        state    = 'à enroller' if pending else 'enrollé   '
-        tags     = '  ' + '  '.join(t for t in [profile, group] if t)
-        print(f"  {marker} {name:<{nw}} {state}  [{k0s_role}]{tags}")
+    for h in hosts:
+        name      = h.get('name', '?')
+        k0s_role  = (h.get('eng_k0s') or {}).get('role', '?')
+        reachable = by_name.get(name, False)
+        marker    = '✓' if reachable else '→'
+        state     = 'en ligne  ' if reachable else 'hors ligne'
+        print(f"  {marker} {name:<{nw}} {state}  [{k0s_role}]")
 
-    for name in enrolled:
-        if name not in desired:
-            print(f"  ⚠ {name:<{nw}} orphan — dans hosts.yml, absent de cluster.yaml")
-
-    if not plan:
-        print('\n  Cluster à jour — rien à faire.\n')
+    offline = sum(1 for r, _, _ in plan if not r)
+    if offline:
+        print(f'\n  {offline} nœud(s) hors ligne — bootstrap requis.\n')
     else:
-        print(f'\n  {len(plan)} nœud(s) à enroller.\n')
+        print(f'\n  Tous les nœuds en ligne.\n')
+
+
+def _wait_vpn_ready(name: str, k0s_data: dict, timeout: int = 30) -> None:
+    import socket, time
+    from kubewi._hostfile import load_all_hosts
+    from kubewi._project import resolve
+
+    hosts = load_all_hosts(resolve())
+    host  = next((h for h in hosts if h.get('name') == name), {})
+    ip    = host.get('ansible_host', '10.0.100.1')
+
+    print(f"  Attente de {ip}:22 via WireGuard (max {timeout}s)...", end='', flush=True)
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection((ip, 22), timeout=2):
+                print(' OK')
+                return
+        except OSError:
+            print('.', end='', flush=True)
+            time.sleep(3)
+
+    print()
+    print(f"\n  ✗ {ip}:22 injoignable après {timeout}s — diagnostics :")
+    print(f"  → Sur le controller : sudo wg show")
+    print(f"  → Sur le controller : sudo cat /etc/wireguard/wg0.conf")
+    print(f"  → Sur le SDK        : sudo wg show wg0-sdk")
+    print(f"  → Sur le SDK        : ping {ip}")
+    print(f"  Si le peer SDK est absent de wg0.conf : kubewi cluster apply relancera init.yml\n")
+    sys.exit(1)
 
 
 def _execute(plan: list) -> None:
-    import getpass
+    import getpass, os, subprocess
     from adp_kube.kubewi import lib as kube
-    from plg_enroll.lib.detection import detect_phase
+    from ops_ssh.kubewi.lib import ensure_key, SSH_KEY
+    from plg_provisioning.kubewi.lib import detect_phase
 
-    steps = [(n, d, a) for n, d, a in plan if a == 'enroll']
-    total = len(steps)
+    ensure_key()
+    total = len(plan)
 
-    for i, (name, data, _) in enumerate(steps, 1):
-        k0s_role = data.get('k0s', 'worker')
-        ifaces   = len(data.get('ifaces', ['eth0', 'eth1']))
+    for i, (reachable, name, data) in enumerate(plan, 1):
+        k0s_role = (data.get('eng_k0s') or {}).get('role', 'worker')
+        ifaces   = len((data.get('plg_gateway') or {}).get('network_bridge_members') or ['eth0', 'eth1'])
 
         print(f"\n{'─' * 56}")
-        print(f"  [{i}/{total}] Prochain nœud : {name}  [{k0s_role}]")
+        print(f"  [{i}/{total}] {name}  [{k0s_role}]")
 
         try:
             if k0s_role == 'controller':
-                print(f"  Déploiement du controller {name}...")
+                from plg_vpn.kubewi.lib import up as vpn_up
+                env = os.environ.copy()
+
+                if not reachable:
+                    init_host    = (data.get('plg_gateway') or {}).get('init_host') or data.get('ansible_host', '')
+                    ansible_user = data.get('ansible_user', 'iobewi')
+                    key_ok = subprocess.run(
+                        ['ssh', '-i', str(SSH_KEY),
+                         '-o', 'PasswordAuthentication=no', '-o', 'BatchMode=yes',
+                         '-o', 'StrictHostKeyChecking=no', '-o', 'ConnectTimeout=5',
+                         f'{ansible_user}@{init_host}', 'true'],
+                        capture_output=True,
+                    ).returncode == 0
+                    if key_ok:
+                        print(f"  Bootstrap {name} (clé SSH)...")
+                        ansible.run_playbook(PLAYBOOKS / 'init.yml', '--limit', name, env=env)
+                    else:
+                        become_pass = getpass.getpass(f"  Mot de passe SSH {name} (premier accès) : ")
+                        env['ANSIBLE_BECOME_PASS'] = become_pass
+                        print(f"  Bootstrap {name} (premier accès)...")
+                        ansible.run_playbook(PLAYBOOKS / 'init.yml', '--limit', name, '-k', env=env)
+                    print(f"  Montée du tunnel VPN SDK...")
+                    vpn_up()
+                    _wait_vpn_ready(name, data)
+                else:
+                    print(f"  Synchronisation gateway {name}...")
+                    ansible.run_playbook(PLAYBOOKS / 'gateway.yml', '--limit', name, env=env)
+
+                print(f"  Synchronisation k0s sur {name}...")
                 kube.add_controller(name)
-                print(f"  ✓ {name} est controller du cluster")
+                print(f"  ✓ {name} synchronisé")
 
             else:
-                print("  Branchez le worker sur le réseau de provisioning.")
-                input('  Prêt ? [Entrée pour démarrer la détection] ')
+                if not reachable:
+                    print("  Branchez le worker sur le réseau de provisioning.")
+                    input('  Prêt ? [Entrée pour démarrer la détection] ')
 
-                kube.scale('provisioning', 'dnsmasq-provisioning', 1)
-                kube.rollout_wait('provisioning', 'dnsmasq-provisioning')
-                try:
-                    detected = detect_phase(ifaces, single=True)
-                finally:
+                    kube.scale('provisioning', 'dnsmasq-provisioning', 1)
+                    kube.rollout_wait('provisioning', 'dnsmasq-provisioning')
                     try:
-                        kube.scale('provisioning', 'dnsmasq-provisioning', 0)
-                    except SystemExit:
-                        pass
+                        detected = detect_phase(ifaces, single=True)
+                    finally:
+                        try:
+                            kube.scale('provisioning', 'dnsmasq-provisioning', 0)
+                        except SystemExit:
+                            pass
 
-                if not detected:
-                    print(f"  ✗ Aucun nœud détecté pour {name}")
-                    continue
+                    if not detected:
+                        print(f"  ✗ Aucun nœud détecté pour {name}")
+                        continue
 
-                become_pass = getpass.getpass('  SSH password : ')
-                kube.worker_init(name, become_pass)
+                    become_pass = getpass.getpass('  SSH password : ')
+                    kube.worker_init(name, become_pass)
+
                 kube.add_worker(name)
-                print(f"  ✓ {name} est worker du cluster")
+                print(f"  ✓ {name} synchronisé")
 
         except KeyboardInterrupt:
-            print(f'\n  Interrompu pendant l\'enrollment de {name}.')
+            print(f'\n  Interrompu pendant la synchronisation de {name}.')
             print('  Relancez kubewi cluster apply pour reprendre.')
             return
 
         if i < total:
             try:
-                ans = input('\n  Continuer vers le nœud suivant ? [o/N] ').strip().lower()
+                ans = input('\n  Continuer ? [o/N] ').strip().lower()
             except (EOFError, KeyboardInterrupt):
                 print('\n  Arrêt.')
                 return
             if ans not in ('o', 'oui', 'y', 'yes'):
-                print(f'  Arrêt — {total - i} nœud(s) restant(s). Relancez kubewi cluster apply.')
+                print(f'  Arrêt — {total - i} nœud(s) restant(s).')
                 return
 
     print(f"\n{'─' * 56}")
-    print(f"  ✓ Tous les nœuds enrollés ({total}/{total}).\n")
+    print(f"  ✓ Cluster synchronisé ({total}/{total} nœuds).\n")
 
 
-# ── helpers ───────────────────────────────────────────────────────────────────
-
-def _packages_by_type(type_filter: str) -> list[str]:
-    return [name for name, _ in _iter_manifests() if _.get('type') == type_filter]
-
-
-def _node_role_packages() -> list[str]:
-    """Packages with Ansible roles deployable as node roles (engine/plugin/ops)."""
-    result = []
-    for name, data in _iter_manifests():
-        if name == NAME:
-            continue
-        t = data.get('type')
-        if t not in ('engine', 'plugin', 'ops'):
-            continue
-        if (_PACKAGES_DIR / name / 'roles').is_dir():
-            result.append(name)
-    return result
-
-
-def _iter_manifests():
-    try:
-        from ruamel.yaml import YAML
-        _yaml = YAML()
-        parse = lambda t: _yaml.load(t) or {}
-    except ImportError:
-        import yaml as _y
-        parse = lambda t: _y.safe_load(t) or {}
-
-    for pkg_dir in sorted(_PACKAGES_DIR.iterdir()):
-        if not pkg_dir.is_dir() or pkg_dir.name.startswith('__'):
-            continue
-        manifest = pkg_dir / 'kubewi.yaml'
-        if not manifest.exists():
-            continue
-        yield pkg_dir.name, parse(manifest.read_text())
+def _banner(msg: str) -> None:
+    print(f"\n  {'─' * 52}")
+    print(f"  {msg}")
+    print(f"  {'─' * 52}")

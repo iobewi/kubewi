@@ -17,7 +17,8 @@ from adp_kube.kubewi import lib as kube
 
 NAME = 'provisioning'
 
-_MANIFESTS = Path(__file__).parent.parent / 'manifests'
+_PACKAGES_DIR = Path(__file__).parent.parent.parent
+_MANIFESTS    = _PACKAGES_DIR / 'wrk_provisioning' / 'manifests'
 
 
 def register(sub) -> None:

@@ -1,5 +1,5 @@
 name: eng_ubuntu
 type: engine
-description: Provisioning base Ubuntu (placeholder)
+description: Provisioning base Ubuntu (system, SSH, chrony, containerd)
 deps:
   - adp_ansible

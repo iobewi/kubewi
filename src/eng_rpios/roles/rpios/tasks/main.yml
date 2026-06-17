@@ -1,2 +1,4 @@
+- ansible.builtin.import_role:
+    name: debian
 - ansible.builtin.import_tasks: cgroups.yml
 - ansible.builtin.import_tasks: swap.yml

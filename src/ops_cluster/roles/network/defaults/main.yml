@@ -1,1 +1,20 @@
-# host_id et network_vlan_ips sont définis dans group_vars/all/main.yml
+network_bridge_name: br0
+
+host_id: "{{ ansible_host.split('.')[-1] }}"
+
+network_vlan_ips:
+  "220": "192.168.22.{{ host_id }}/24"
+  "420": "192.168.42.{{ host_id }}/24"
+  "620": "192.168.62.{{ host_id }}/24"
+
+network_vlans:
+  - id: 220
+    name: kube
+    subnet: 192.168.22.0/24
+    gateway: "192.168.22.1"
+  - id: 420
+    name: data
+    subnet: 192.168.42.0/24
+  - id: 620
+    name: ros
+    subnet: 192.168.62.0/24

@@ -1,7 +1,0 @@
-name: plg_enroll
-type: plugin
-description: Enrollment de nœuds dans le cluster — workflow complet DHCP, détection, inventaire
-deps:
-  - adp_kube
-  - adp_ansible
-  - plg_provisioning

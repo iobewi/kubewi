@@ -4,4 +4,7 @@ description: Cycle de vie complet du cluster — init, enrollment, configuration
 deps:
   - adp_kube
   - adp_ansible
-  - plg_enroll
+  - ops_ssh
+  - plg_vpn
+  - plg_provisioning
+  - eng_k0s

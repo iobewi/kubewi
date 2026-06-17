@@ -1,0 +1,23 @@
+- name: System provisioning
+  hosts: gateways
+  roles:
+    - role: rpios
+      when: eng_rpios is defined
+    - role: ubuntu
+      when: eng_rpios is not defined and ansible_distribution == 'Ubuntu'
+    - role: debian
+      when: eng_rpios is not defined and ansible_distribution == 'Debian'
+
+- name: Network provisioning
+  hosts: gateways
+  roles:
+    - network
+    - gateway
+    - role: hostapd
+      when: wifi_ap is defined
+
+- name: WireGuard provisioning
+  hosts: gateways
+  roles:
+    - role: wireguard
+      when: vpn_controller_pubkey | default('') != ''

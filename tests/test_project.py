@@ -79,10 +79,16 @@ def test_init_creates_marker(tmp_path):
     assert (project / MARKER).exists()
 
 
-def test_init_copies_hosts_yml(tmp_path):
+def test_init_creates_controller_host(tmp_path):
     from kubewi._project import init
     project = init('test-cluster', tmp_path)
-    assert (project / 'hosts.yml').exists()
+    assert (project / 'hosts' / 'controller-01.yml').exists()
+
+
+def test_init_creates_cluster_yml(tmp_path):
+    from kubewi._project import init
+    project = init('test-cluster', tmp_path)
+    assert (project / 'cluster.yml').exists()
 
 
 def test_init_copies_vault_yml(tmp_path):

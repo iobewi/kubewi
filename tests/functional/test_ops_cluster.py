@@ -1,6 +1,6 @@
 """
 Tests fonctionnels — ops_cluster
-Vérifie inventory-init, init (cluster.yaml), et les commandes make.
+Vérifie inventory-init, init (génère hosts.yml) et commandes cluster.
 """
 from __future__ import annotations
 
@@ -28,10 +28,10 @@ def test_inventory_init_creates_marker(tmp_path):
     assert (tmp_path / 'mon-cluster' / MARKER).exists()
 
 
-def test_inventory_init_creates_hosts_yml(tmp_path):
+def test_inventory_init_creates_controller_host(tmp_path):
     from ops_cluster.kubewi.commands import _inventory_init
     _inventory_init(Namespace(name='mon-cluster', dir=str(tmp_path)))
-    assert (tmp_path / 'mon-cluster' / 'hosts.yml').exists()
+    assert (tmp_path / 'mon-cluster' / 'hosts' / 'controller-01.yml').exists()
 
 
 def test_inventory_init_creates_vault_yml(tmp_path):
@@ -40,38 +40,33 @@ def test_inventory_init_creates_vault_yml(tmp_path):
     assert (tmp_path / 'mon-cluster' / 'group_vars' / 'all' / 'vault.yml').exists()
 
 
-# ── init (cluster.yaml) ───────────────────────────────────────────────────────
+def test_inventory_init_creates_cluster_yml(tmp_path):
+    from ops_cluster.kubewi.commands import _inventory_init
+    _inventory_init(Namespace(name='mon-cluster', dir=str(tmp_path)))
+    assert (tmp_path / 'mon-cluster' / 'cluster.yml').exists()
 
 
-def test_cluster_init_creates_cluster_yaml(project_dir):
+# ── init (génère hosts.yml depuis hosts/*.yml) ────────────────────────────────
+
+
+def test_cluster_init_generates_hosts_yml(project_dir):
     from ops_cluster.kubewi.commands import _init
-    _init(Namespace(output=None, force=False))
-    assert (project_dir / 'cluster.yaml').exists()
+    _init()
+    assert (project_dir / 'hosts.yml').exists()
 
 
-def test_cluster_init_output_contains_nodes(project_dir):
-    from kubewi._project import MARKER
+def test_cluster_init_output_contains_controller(project_dir):
     from ops_cluster.kubewi.commands import _init
-    # Ajouter un controller dans hosts.yml du projet
-    (project_dir / 'hosts.yml').write_text(
-        'all:\n  children:\n    kubernetes:\n      children:\n'
-        '        controllers:\n          children:\n'
-        '            gateways:\n              hosts:\n'
-        '                controller-01:\n                  host_id: 1\n'
-    )
-    _init(Namespace(output=None, force=False))
-    content = (project_dir / 'cluster.yaml').read_text()
-    assert 'nodes:' in content
+    _init()
+    content = (project_dir / 'hosts.yml').read_text()
     assert 'controller-01' in content
-    assert 'name: test-cluster' in content  # nom depuis .kubewi-project
 
 
-def test_cluster_init_force_overwrites(project_dir):
+def test_cluster_init_output_contains_gateway_section(project_dir):
     from ops_cluster.kubewi.commands import _init
-    output = project_dir / 'cluster.yaml'
-    output.write_text('old content')
-    _init(Namespace(output=None, force=True))
-    assert 'old content' not in output.read_text()
+    _init()
+    content = (project_dir / 'hosts.yml').read_text()
+    assert 'gateways' in content
 
 
 # ── wifi / vault ──────────────────────────────────────────────────────────────
@@ -107,3 +102,66 @@ def test_vault_encrypt_calls_ansible_vault(mock_subprocess, project_dir):
     vault.write_text('test: value\n')
     run_cmd(Namespace(cluster_cmd='vault-encrypt'))
     assert any('ansible-vault' in c and 'encrypt' in c for c in _cmds(mock_subprocess))
+
+
+# ── cluster add worker (manuel) ───────────────────────────────────────────────
+
+
+def test_add_worker_manual_missing_file_exits(project_dir):
+    from ops_cluster.kubewi.commands import _add_worker
+    import pytest
+    with pytest.raises(SystemExit):
+        _add_worker(Namespace(name='worker-aabbcc', ifaces=2, dry_run=False, yes=False))
+
+
+def test_add_worker_manual_calls_worker_init_and_add(mock_subprocess, project_dir, monkeypatch):
+    from ops_cluster.kubewi.commands import _add_worker
+
+    (project_dir / 'hosts' / 'worker-aabbcc.yml').write_text(
+        'kubewi:\n  host:\n'
+        '    name: worker-aabbcc\n'
+        '    ansible_host: 192.168.22.10\n'
+        '    ansible_user: iobewi\n'
+        '    plg_gateway:\n'
+        '      init_host: "192.168.0.10"\n'
+        '      network_bridge_members: [eth0, eth1]\n'
+        '    eng_k0s:\n'
+        '      role: worker\n'
+    )
+    monkeypatch.setattr('getpass.getpass', lambda _: 'pass')
+    _add_worker(Namespace(name='worker-aabbcc', ifaces=2, dry_run=False, yes=False))
+
+    cmds = _cmds(mock_subprocess)
+    assert any('workers-init.yml' in c for c in cmds)
+    assert any('worker.yml' in c for c in cmds)
+    assert any('worker-aabbcc' in c for c in cmds)
+
+
+# ── cluster add controller ────────────────────────────────────────────────────
+
+
+def test_add_controller_missing_file_exits(project_dir):
+    from ops_cluster.kubewi.commands import _add_controller
+    import pytest
+    with pytest.raises(SystemExit):
+        _add_controller(Namespace(name='controller-x', yes=True))
+
+
+def test_add_controller_calls_init_and_controller_yml(mock_subprocess, project_dir, monkeypatch):
+    from ops_cluster.kubewi.commands import _add_controller
+
+    (project_dir / 'hosts' / 'controller-aabbcc.yml').write_text(
+        'kubewi:\n  host:\n'
+        '    name: controller-aabbcc\n'
+        '    ansible_host: 10.0.100.5\n'
+        '    ansible_user: iobewi\n'
+        '    eng_k0s:\n'
+        '      role: controller\n'
+    )
+    monkeypatch.setattr('getpass.getpass', lambda _: 'pass')
+    _add_controller(Namespace(name='controller-aabbcc', yes=True))
+
+    cmds = _cmds(mock_subprocess)
+    assert any('init.yml' in c for c in cmds)
+    assert any('controller.yml' in c for c in cmds)
+    assert any('controller-aabbcc' in c for c in cmds)

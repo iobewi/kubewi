@@ -11,5 +11,8 @@
 - name: Configure k0s service
   ansible.builtin.import_tasks: service.yml
 
+- name: Remove control-plane scheduling taint
+  ansible.builtin.import_tasks: taint.yml
+
 - name: Generate worker join token
   ansible.builtin.import_tasks: token.yml

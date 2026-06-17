@@ -1,0 +1,9 @@
+- name: Configure journald log size
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/journald.conf
+    regexp: "^#?{{ item.key }}="
+    line: "{{ item.key }}={{ item.value }}"
+  loop:
+    - { key: SystemMaxUse, value: 500M }
+    - { key: RuntimeMaxUse, value: 100M }
+  notify: restart systemd-journald

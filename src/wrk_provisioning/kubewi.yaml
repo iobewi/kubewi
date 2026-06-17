@@ -1,0 +1,3 @@
+name: wrk_provisioning
+type: workload
+description: DHCP de provisioning worker (dnsmasq sur le cluster)
