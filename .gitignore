@@ -1,6 +1,9 @@
 .cache/
 artifacts/
 
+# Projets kubewi (créés par kubewi cluster inventory-init)
+teas/
+
 tmp/
 _old/
 

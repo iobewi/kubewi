@@ -56,4 +56,29 @@ def init(name: str, parent: Path) -> Path:
     shutil.copy(_ANSIBLE_PKG / 'group_vars' / 'all' / 'vault.yml.example',
                 project_dir / 'group_vars' / 'all' / 'vault.yml')
 
+    _gitignore_if_needed(name, parent)
+
     return project_dir
+
+
+def _gitignore_if_needed(name: str, parent: Path) -> None:
+    """Ajoute <name>/ au .gitignore si le répertoire parent est dans un dépôt git."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ['git', 'rev-parse', '--show-toplevel'],
+            cwd=str(parent), capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            return
+        git_root  = Path(result.stdout.strip())
+        gitignore = git_root / '.gitignore'
+        entry     = f'{name}/\n'
+        existing  = gitignore.read_text() if gitignore.exists() else ''
+        if entry.strip() in [l.strip() for l in existing.splitlines()]:
+            return
+        with gitignore.open('a') as f:
+            f.write(entry)
+        print(f"  ✓ '{name}/' ajouté à .gitignore")
+    except Exception:
+        pass
