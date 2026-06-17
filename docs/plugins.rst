@@ -8,7 +8,6 @@ de haut niveau.
 .. toctree::
    :maxdepth: 2
 
-   packages/plg_enroll/index
    packages/plg_provisioning/index
    packages/plg_gateway/index
    packages/plg_vpn/index

@@ -247,7 +247,7 @@ Pour chaque worker manquant, la commande :
 4. Lance le provisioning k0s (Phase 2 via VLAN 220)
 5. Désactive le DHCP de provisioning
 
-Voir :doc:`packages/plg_enroll/index` pour le détail du workflow.
+Voir :doc:`packages/plg_provisioning/index` pour le détail du workflow.
 
 ----
 
