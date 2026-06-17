@@ -140,22 +140,32 @@ Renseigner a minima pour le controller :
      ansible_user: iobewi
      host_id: 1
 
-**3. Générer les clés WireGuard**
+**3. Générer la description déclarative du cluster**
+
+.. code-block:: bash
+
+   kubewi cluster init
+
+Génère ``cluster.yaml`` — décrit la composition désirée du cluster
+(rôles, profils matériel, nœuds). Éditer ce fichier pour ajouter les
+workers avant de lancer ``kubewi cluster apply``.
+
+**4. Générer les clés VPN**
 
 .. code-block:: bash
 
    kubewi vpn generate-keys
 
 Injecte les clés publiques dans ``hosts.yml`` et les clés privées dans
-``vault.yml``. Génère ``work/wg0-sdk.conf`` (gitignored).
+``vault.yml``. Génère ``wg0-sdk.conf`` dans le répertoire projet (gitignored).
 
-**4. (Optionnel) Renseigner les credentials WiFi AP**
+**5. (Optionnel) Renseigner les credentials WiFi AP**
 
 .. code-block:: bash
 
    kubewi cluster wifi
 
-**5. Chiffrer le vault**
+**6. Chiffrer le vault**
 
 .. code-block:: bash
 
@@ -169,7 +179,7 @@ Premier déploiement controller
 Le premier run s'effectue via l'IP DHCP de ``eth0`` (avant que le tunnel
 WireGuard ne soit disponible).
 
-**6. Déployer le controller**
+**7. Déployer le controller**
 
 .. code-block:: bash
 
@@ -188,7 +198,7 @@ Cette commande enchaîne :
 Accès distant SDK
 ------------------
 
-**7. Monter le tunnel WireGuard**
+**8. Monter le tunnel WireGuard**
 
 .. code-block:: bash
 
@@ -201,7 +211,7 @@ Vérifier :
    ping 10.0.100.1      # controller WireGuard
    ping 192.168.22.1    # controller VLAN 220 (k0s API)
 
-**8. Initialiser l'accès SSH**
+**9. Initialiser l'accès SSH**
 
 .. code-block:: bash
 
@@ -211,7 +221,7 @@ Génère ``~/.ssh/kubewi_ansible``, configure ``~/.ssh/config``
 (ProxyJump workers → controller), distribue la clé sur tous les nœuds
 (mot de passe demandé une fois par groupe).
 
-**9. Récupérer le kubeconfig**
+**10. Récupérer le kubeconfig**
 
 .. code-block:: bash
 
@@ -222,13 +232,6 @@ Génère ``~/.ssh/kubewi_ansible``, configure ``~/.ssh/config``
 
 Enrollment des workers
 -----------------------
-
-**10. Décrire le cluster**
-
-.. code-block:: bash
-
-   kubewi cluster init    # génère work/cluster.yaml
-   # éditer cluster.yaml pour décrire les workers
 
 **11. Enroller les workers**
 
@@ -251,7 +254,7 @@ Voir :doc:`packages/plg_enroll/index` pour le détail du workflow.
 Déploiement de la stack
 ------------------------
 
-**12. Déployer les workloads**
+**12. Appliquer la configuration réseau et workloads**
 
 .. code-block:: bash
 
