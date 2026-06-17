@@ -112,7 +112,8 @@ def _pkg_conf_init_ordered(roots: list[str]) -> list[str]:
     Parcours DFS pré-ordre du graphe de deps depuis les roots.
     Retourne la liste ordonnée des packages ayant un conf_init/pkg.yml.
     """
-    import yaml
+    from ruamel.yaml import YAML as _YAML
+    _yaml = _YAML()
     seen:   set[str]  = set()
     result: list[str] = []
 
@@ -124,7 +125,7 @@ def _pkg_conf_init_ordered(roots: list[str]) -> list[str]:
             result.append(pkg)
         kubewi_yaml = _SRC_DIR / pkg / 'kubewi.yaml'
         if kubewi_yaml.exists():
-            data = yaml.safe_load(kubewi_yaml.read_text()) or {}
+            data = _yaml.load(kubewi_yaml.read_text()) or {}
             for dep in (data.get('deps') or []):
                 _dfs(dep)
 
