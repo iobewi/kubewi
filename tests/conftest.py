@@ -1,8 +1,8 @@
 """
 Fixtures partagées entre tous les tests kubewi.
 
-PKG_DIRS  : liste de tous les répertoires de paquets sous src/
-pkg_dir   : fixture parametrisée — un cas par paquet
+PKG_DIRS     : tous les paquets ayant kubewi.yaml (incluant les adapters sans CLI)
+CLI_PKG_DIRS : paquets qui exposent kubewi/commands.py (commandes CLI)
 """
 from __future__ import annotations
 
@@ -34,13 +34,20 @@ def _is_package(path: Path) -> bool:
         and not path.name.startswith("_")
         and path.name != "kubewi"
         and (path / "kubewi.yaml").exists()
-        and (path / "kubewi" / "commands.py").exists()
     )
 
 
 PKG_DIRS: list[Path] = sorted(p for p in SRC_DIR.iterdir() if _is_package(p))
 
+# Sous-ensemble avec commandes CLI (kubewi/commands.py présent)
+CLI_PKG_DIRS: list[Path] = [p for p in PKG_DIRS if (p / "kubewi" / "commands.py").exists()]
+
 
 @pytest.fixture(params=PKG_DIRS, ids=lambda p: p.name)
 def pkg_dir(request: pytest.FixtureRequest) -> Path:
+    return request.param
+
+
+@pytest.fixture(params=CLI_PKG_DIRS, ids=lambda p: p.name)
+def cli_pkg_dir(request: pytest.FixtureRequest) -> Path:
     return request.param

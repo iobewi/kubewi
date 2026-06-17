@@ -45,12 +45,10 @@ def run_cmd(args) -> None:
     if args.cluster_cmd == 'status':         _status(args);         return
     if args.cluster_cmd == 'apply':          _apply(args);          return
     if args.cluster_cmd == 'wifi':           _wifi();               return
+    if args.cluster_cmd == 'vault-encrypt':  _vault_cmd('encrypt'); return
+    if args.cluster_cmd == 'vault-edit':     _vault_cmd('edit');    return
 
-    make_targets = {'vault-encrypt', 'vault-edit'}
-    if args.cluster_cmd in make_targets:
-        ansible.run_make(args.cluster_cmd)
-    else:
-        ansible.run_playbook(PLAYBOOKS / f'{args.cluster_cmd}.yml')
+    ansible.run_playbook(PLAYBOOKS / f'{args.cluster_cmd}.yml')
 
 
 # ── inventory-init ───────────────────────────────────────────────────────────
@@ -63,6 +61,15 @@ def _inventory_init(args) -> None:
     print(f"  → cd {project_dir.resolve()}")
     print(f"  → Éditer hosts.yml")
     print(f"  → kubewi cluster init  (génère cluster.yaml)\n")
+
+
+# ── vault ────────────────────────────────────────────────────────────────────
+
+def _vault_cmd(action: str) -> None:
+    from kubewi._project import resolve
+    from kubewi._utils import run
+    vault = resolve() / 'group_vars' / 'all' / 'vault.yml'
+    run(['ansible-vault', action, str(vault)])
 
 
 # ── wifi ─────────────────────────────────────────────────────────────────────

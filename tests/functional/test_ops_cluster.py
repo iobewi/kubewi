@@ -68,13 +68,33 @@ def test_cluster_init_force_overwrites(project_dir):
 # ── wifi / vault ──────────────────────────────────────────────────────────────
 
 
-def test_wifi_calls_make(mock_subprocess, project_dir):
-    from ops_cluster.kubewi.commands import run_cmd
-    run_cmd(Namespace(cluster_cmd='wifi'))
-    assert any('make' in c and 'wifi' in c for c in _cmds(mock_subprocess))
+def test_wifi_ap_updates_vault(project_dir, monkeypatch):
+    from ops_cluster.kubewi.commands import _wifi
+    vault = project_dir / 'group_vars' / 'all' / 'vault.yml'
+    vault.write_text('vault_wifi_ap_psk: ""\nvault_wifi_ssid: ""\nvault_wifi_psk: ""\n')
+    inputs = iter(['1'])
+    monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+    monkeypatch.setattr('getpass.getpass', lambda _: 'test-passphrase')
+    _wifi()
+    assert 'vault_wifi_ap_psk: "test-passphrase"' in vault.read_text()
 
 
-def test_vault_encrypt_calls_make(mock_subprocess, project_dir):
+def test_wifi_client_updates_vault(project_dir, monkeypatch):
+    from ops_cluster.kubewi.commands import _wifi
+    vault = project_dir / 'group_vars' / 'all' / 'vault.yml'
+    vault.write_text('vault_wifi_ap_psk: ""\nvault_wifi_ssid: ""\nvault_wifi_psk: ""\n')
+    inputs = iter(['2', 'MySSID'])
+    monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+    monkeypatch.setattr('getpass.getpass', lambda _: 'test-psk')
+    _wifi()
+    content = vault.read_text()
+    assert 'vault_wifi_ssid: "MySSID"' in content
+    assert 'vault_wifi_psk: "test-psk"' in content
+
+
+def test_vault_encrypt_calls_ansible_vault(mock_subprocess, project_dir):
     from ops_cluster.kubewi.commands import run_cmd
+    vault = project_dir / 'group_vars' / 'all' / 'vault.yml'
+    vault.write_text('test: value\n')
     run_cmd(Namespace(cluster_cmd='vault-encrypt'))
-    assert any('make' in c and 'vault-encrypt' in c for c in _cmds(mock_subprocess))
+    assert any('ansible-vault' in c and 'encrypt' in c for c in _cmds(mock_subprocess))

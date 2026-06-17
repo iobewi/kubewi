@@ -1,26 +1,12 @@
-"""
-role:
-    Gestion du tunnel WireGuard entre le SDK et le cluster.
-
-responsibilities:
-    - monter / couper le tunnel via wg-quick
-    - générer et injecter les clés WireGuard (délégué à _ansible)
-    - déclencher le déploiement via l'engine wireguard
-
-does_not:
-    - configurer le peer côté controller (rôle wireguard Ansible — engine wireguard)
-"""
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
-from adp_ansible.kubewi import lib as ansible
 from kubewi._utils import run
 
 NAME     = 'vpn'
 _PKG_DIR = Path(__file__).parent.parent
-WG_CONF  = _PKG_DIR.parent.parent / 'work' / 'wg0-sdk.conf'
 
 
 def register(sub) -> None:
@@ -38,18 +24,64 @@ def run_cmd(args) -> None:
     elif args.vpn_cmd == 'down':
         _down()
     elif args.vpn_cmd == 'generate-keys':
-        ansible.run_make('wireguard-keys')
+        _generate_keys()
     elif args.vpn_cmd == 'deploy':
         from eng_wireguard.kubewi import lib as wireguard
         wireguard.deploy()
 
 
+def _wg_conf() -> Path:
+    from kubewi._project import resolve
+    return resolve() / 'wg0-sdk.conf'
+
+
 def _up() -> None:
-    if not WG_CONF.exists():
-        print(f"  ✗ {WG_CONF} absent — lancer kubewi vpn generate-keys d'abord")
+    conf = _wg_conf()
+    if not conf.exists():
+        print(f"  ✗ {conf} absent — lancer kubewi vpn generate-keys d'abord")
         sys.exit(1)
-    run(['wg-quick', 'up', str(WG_CONF)])
+    run(['wg-quick', 'up', str(conf)])
 
 
 def _down() -> None:
-    run(['wg-quick', 'down', str(WG_CONF)])
+    run(['wg-quick', 'down', str(_wg_conf())])
+
+
+def _generate_keys() -> None:
+    import re
+    import subprocess
+    from kubewi._project import resolve
+
+    project = resolve()
+    vault   = project / 'group_vars' / 'all' / 'vault.yml'
+    hosts   = project / 'hosts.yml'
+
+    for path in (vault, hosts):
+        if not path.exists():
+            print(f"  ✗ {path} introuvable")
+            sys.exit(1)
+
+    def wg_genkey() -> str:
+        return subprocess.check_output(['wg', 'genkey']).decode().strip()
+
+    def wg_pubkey(priv: str) -> str:
+        return subprocess.check_output(['wg', 'pubkey'], input=priv.encode()).decode().strip()
+
+    ctrl_key = wg_genkey()
+    ctrl_pub = wg_pubkey(ctrl_key)
+    sdk_key  = wg_genkey()
+    sdk_pub  = wg_pubkey(sdk_key)
+
+    v = vault.read_text()
+    v = re.sub(r'vault_wg_controller_private_key:.*', f'vault_wg_controller_private_key: "{ctrl_key}"', v)
+    v = re.sub(r'vault_wg_sdk_private_key:.*',        f'vault_wg_sdk_private_key: "{sdk_key}"',        v)
+    vault.write_text(v)
+
+    h = hosts.read_text()
+    h = re.sub(r'wg_controller_pubkey:.*', f'wg_controller_pubkey: "{ctrl_pub}"', h)
+    h = re.sub(r'wg_sdk_pubkey:.*',        f'wg_sdk_pubkey: "{sdk_pub}"',        h)
+    hosts.write_text(h)
+
+    print(f"  ✓ vault.yml mis à jour (clés privées — à chiffrer !)")
+    print(f"  ✓ hosts.yml mis à jour (clés publiques)")
+    print(f"  → Chiffrer : kubewi cluster vault-encrypt\n")
