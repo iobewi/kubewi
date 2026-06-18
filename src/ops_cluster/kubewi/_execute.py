@@ -175,6 +175,11 @@ def _execute(plan: list) -> None:
                         print(f"  ✗ Aucun nœud détecté pour {name}")
                         continue
 
+                    name = detected[0][0]
+                    from kubewi._hostfile import generate_ansible_inventory
+                    from kubewi._project import resolve as _resolve
+                    generate_ansible_inventory(_resolve())
+
                     become_pass = getpass.getpass('  SSH password : ')
                     kube.worker_init(name, become_pass)
 
