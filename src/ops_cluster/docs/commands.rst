@@ -3,13 +3,11 @@ Commandes CLI
 
 .. code-block:: text
 
-   kubewi cluster inventory-init <nom>      crée un projet kubewi vide
-   kubewi cluster create                    bootstrap le gateway + rename MAC
+   kubewi cluster create <nom>              crée un nouveau projet kubewi
    kubewi cluster add worker [NAME]         ajoute un worker (auto ou manuel)
    kubewi cluster add controller NAME       ajoute un controller secondaire
    kubewi cluster apply [--dry-run]         applique la conf sur tous les nœuds
    kubewi cluster status                    affiche l'état désiré vs en ligne
-   kubewi cluster init                      régénère hosts.yml depuis hosts/*.yml
    kubewi cluster kubeconfig                récupère le kubeconfig depuis le controller
    kubewi cluster wifi                      renseigne les credentials WiFi dans vault.yml
    kubewi cluster vault-encrypt             chiffre vault.yml avec ansible-vault
@@ -26,10 +24,10 @@ Workflow de déploiement initial
 .. code-block:: bash
 
    # 1 — Créer le projet
-   kubewi cluster inventory-init mon-cluster
+   kubewi cluster create mon-cluster
    cd mon-cluster
 
-   # 2 — Renseigner les clés VPN dans hosts/controller-01.yml
+   # 2 — Renseigner les clés VPN et la conf réseau
    kubewi vpn generate-keys
    # éditer hosts/controller-01.yml (init_host, ansible_user, réseau…)
 
@@ -37,19 +35,17 @@ Workflow de déploiement initial
    kubewi cluster wifi
    kubewi cluster vault-encrypt
 
-   # 4 — Bootstrap du gateway + renommage MAC
-   kubewi cluster create
-   # → le controller est renommé controller-<6octets-MAC>
-   # → cluster.yml est mis à jour avec le nouveau nom
+   # 4 — Déployer le cluster (bootstrap gateway + workers)
+   kubewi cluster apply
+   # → bootstrap du gateway via init_host
+   # → renommage MAC automatique (controller-01 → controller-<MAC>)
+   # → montée du tunnel VPN SDK
+   # → workers ajoutés à la demande
 
-   # 5 — Ajouter des workers
-   kubewi cluster add worker          # auto : détection DHCP, nommage MAC
-   kubewi cluster add worker worker-88c240   # manuel : fichier host existant
-
-   # 6 — Récupérer le kubeconfig
+   # 5 — Récupérer le kubeconfig
    kubewi cluster kubeconfig
 
-   # 7 — Déployer la stack complète
+   # 6 — Déployer la stack complète
    kubewi cluster stack
 
 ----

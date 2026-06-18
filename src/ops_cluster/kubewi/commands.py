@@ -15,13 +15,9 @@ def register(sub) -> None:
     p = sub.add_parser('cluster', help='Gestion déclarative du cluster')
     s = p.add_subparsers(dest='cluster_cmd', metavar='CMD', required=True)
 
-    inv_p = s.add_parser('inventory-init', help='Crée un nouveau projet kubewi')
-    inv_p.add_argument('name', metavar='NOM', help='Nom du projet/cluster')
-    inv_p.add_argument('--dir', '-d', default='.', metavar='DIR', help='Répertoire parent (défaut: courant)')
-
-    s.add_parser('init',   help='Génère hosts.yml (inventaire Ansible) depuis hosts/*.yml')
-
-    s.add_parser('create', help='Bootstrap le controller gateway et le renomme via MAC')
+    create_p = s.add_parser('create', help='Crée un nouveau projet kubewi')
+    create_p.add_argument('name', metavar='NOM', help='Nom du projet/cluster')
+    create_p.add_argument('--dir', '-d', default='.', metavar='DIR', help='Répertoire parent (défaut: courant)')
 
     s.add_parser('status', help='Affiche l\'état désiré vs enrollé')
 
@@ -52,9 +48,7 @@ def register(sub) -> None:
 
 
 def run_cmd(args) -> None:
-    if args.cluster_cmd == 'inventory-init': _inventory_init(args); return
-    if args.cluster_cmd == 'init':           _init();               return
-    if args.cluster_cmd == 'create':         _create();             return
+    if args.cluster_cmd == 'create':         _create_project(args); return
     if args.cluster_cmd == 'status':         _status(args);         return
     if args.cluster_cmd == 'apply':          _apply(args);          return
     if args.cluster_cmd == 'add':
@@ -75,86 +69,6 @@ def _kubeconfig() -> None:
     from eng_k0s.scripts.kubeconfig import main as fetch
     fetch()
 
-
-# ── create ───────────────────────────────────────────────────────────────────
-
-def _create() -> None:
-    import getpass, os, subprocess
-    from kubewi._project import resolve
-    from kubewi._hostfile import load_cluster, find_gateway_host_path, load_host, mac_to_id
-    from kubewi._hostfile import generate_ansible_inventory
-    from ops_ssh.kubewi.lib import ensure_key, SSH_KEY
-    from plg_vpn.kubewi.lib import up as vpn_up
-
-    ensure_key()
-    project_dir = resolve()
-    cluster     = load_cluster(project_dir)
-    gw_name     = cluster.get('gateway', '')
-
-    # Trouver le fichier host du gateway
-    gw_path = (project_dir / 'hosts' / f'{gw_name}.yml') if gw_name else None
-    if not gw_path or not gw_path.exists():
-        gw_path = find_gateway_host_path(project_dir)
-    if not gw_path:
-        print("  ✗ Aucun host gateway trouvé dans hosts/")
-        print("  → Vérifier que cluster.yml contient un champ 'gateway'")
-        sys.exit(1)
-
-    data        = load_host(gw_path)
-    name        = data.get('name', gw_path.stem)
-    init_host   = (data.get('plg_gateway') or {}).get('init_host') or data.get('ansible_host', '')
-    ansible_user = data.get('ansible_user', 'iobewi')
-    iface       = ((data.get('plg_gateway') or {}).get('network_bridge_members') or [''])[0]
-
-    if not init_host:
-        print(f"  ✗ init_host absent dans {gw_path.name}")
-        sys.exit(1)
-
-    print(f"\n  Bootstrap gateway : {name}  ({init_host})\n")
-
-    env   = os.environ.copy()
-    key_ok = subprocess.run(
-        ['ssh', '-i', str(SSH_KEY),
-         '-o', 'PasswordAuthentication=no', '-o', 'BatchMode=yes',
-         '-o', 'StrictHostKeyChecking=no', '-o', 'ConnectTimeout=5',
-         f'{ansible_user}@{init_host}', 'true'],
-        capture_output=True,
-    ).returncode == 0
-
-    if key_ok:
-        print(f"  Bootstrap (clé SSH)...")
-        ansible.run_playbook(PLAYBOOKS / 'init.yml', '--limit', name, env=env)
-    else:
-        become_pass = getpass.getpass(f"  Mot de passe SSH (premier accès) : ")
-        env['ANSIBLE_BECOME_PASS'] = become_pass
-        print(f"  Bootstrap (premier accès)...")
-        ansible.run_playbook(PLAYBOOKS / 'init.yml', '--limit', name, '-k', env=env)
-
-    # Récupérer la MAC et renommer
-    mac     = _fetch_mac(init_host, ansible_user, iface)
-    node_id = mac_to_id(mac)
-    new_name = f"controller-{node_id}"
-
-    if new_name != name:
-        print(f"  Renommage {name} → {new_name} (MAC {mac})...")
-        _rename_host(gw_path, new_name)
-        _update_cluster_gateway(project_dir, new_name)
-        generate_ansible_inventory(project_dir)
-        print(f"  ✓ hosts/{new_name}.yml  |  gateway: {new_name}")
-    else:
-        print(f"  Nom déjà cohérent : {new_name}")
-
-    print(f"\n  Montée du tunnel VPN SDK...")
-    vpn_up()
-    _wait_vpn_ready(new_name, data)
-
-    print(f"  Synchronisation gateway...")
-    ansible.run_playbook(PLAYBOOKS / 'gateway.yml', '--limit', new_name, env=env)
-
-    from adp_kube.kubewi import lib as kube
-    kube.add_controller(new_name)
-
-    print(f"\n  ✓ Cluster créé — controller : {new_name}\n")
 
 
 def _fetch_mac(init_host: str, user: str, iface: str) -> str:
@@ -319,17 +233,17 @@ def _add_controller(args) -> None:
     print(f"\n  ✓ {name} est membre du cluster Kubernetes\n")
 
 
-# ── inventory-init ───────────────────────────────────────────────────────────
+# ── create (nouveau projet) ───────────────────────────────────────────────────
 
-def _inventory_init(args) -> None:
+def _create_project(args) -> None:
     from kubewi._project import init as project_init
     parent      = Path(getattr(args, 'dir', '.'))
     project_dir = project_init(args.name, parent)
     print(f"\n  ✓ Projet '{args.name}' créé dans {project_dir.resolve()}")
     print(f"  → cd {project_dir.resolve()}")
-    print(f"  → Éditer hosts/controller-01.yml")
+    print(f"  → Éditer hosts/controller-01.yml  (init_host, réseau, clés VPN)")
     print(f"  → kubewi vpn generate-keys")
-    print(f"  → kubewi cluster init  (génère l'inventaire Ansible)\n")
+    print(f"  → kubewi cluster apply\n")
 
 
 # ── vault ────────────────────────────────────────────────────────────────────
@@ -383,17 +297,6 @@ def _wifi() -> None:
 
     vault.write_text(content)
     print(f"\n  → Chiffrer : kubewi cluster vault-encrypt\n")
-
-
-# ── init ─────────────────────────────────────────────────────────────────────
-
-def _init() -> None:
-    from kubewi._project import resolve
-    from kubewi._hostfile import generate_ansible_inventory
-    project_dir = resolve()
-    inventory   = generate_ansible_inventory(project_dir)
-    print(f"\n  ✓ {inventory} généré")
-    print('  → kubewi cluster apply  (pour enrôler les nœuds)\n')
 
 
 # ── apply / status ────────────────────────────────────────────────────────────
@@ -454,7 +357,7 @@ def _compute_plan():
     hosts_dir   = project_dir / 'hosts'
     if not hosts_dir.exists() or not any(hosts_dir.glob('*.yml')):
         print(f"  ✗ Aucun fichier host trouvé dans {hosts_dir}")
-        print(f"  → Créer un projet : kubewi cluster inventory-init <nom>")
+        print(f"  → Créer un projet : kubewi cluster create <nom>")
         sys.exit(1)
 
     hosts   = load_all_hosts(project_dir)
@@ -574,6 +477,23 @@ def _execute(plan: list) -> None:
                         env['ANSIBLE_BECOME_PASS'] = become_pass
                         print(f"  Bootstrap {name} (premier accès)...")
                         ansible.run_playbook(PLAYBOOKS / 'init.yml', '--limit', name, '-k', env=env)
+
+                    # Renommage MAC pour le gateway (plg_gateway présent)
+                    if data.get('plg_gateway'):
+                        from kubewi._hostfile import mac_to_id, generate_ansible_inventory
+                        from kubewi._project import resolve as _resolve
+                        iface    = ((data.get('plg_gateway') or {}).get('network_bridge_members') or [''])[0]
+                        mac      = _fetch_mac(init_host, ansible_user, iface)
+                        new_name = f"controller-{mac_to_id(mac)}"
+                        if new_name != name:
+                            print(f"  Renommage {name} → {new_name} (MAC {mac})...")
+                            _proj    = _resolve()
+                            _rename_host(_proj / 'hosts' / f'{name}.yml', new_name)
+                            _update_cluster_gateway(_proj, new_name)
+                            generate_ansible_inventory(_proj)
+                            name = new_name
+                            print(f"  ✓ hosts/{new_name}.yml  |  gateway: {new_name}")
+
                     print(f"  Montée du tunnel VPN SDK...")
                     vpn_up()
                     _wait_vpn_ready(name, data)

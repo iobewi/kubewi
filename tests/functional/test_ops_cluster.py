@@ -1,6 +1,6 @@
 """
 Tests fonctionnels — ops_cluster
-Vérifie inventory-init, init (génère hosts.yml) et commandes cluster.
+Vérifie cluster create (crée le projet) et commandes cluster.
 """
 from __future__ import annotations
 
@@ -12,59 +12,59 @@ def _cmds(calls: list[list[str]]) -> list[str]:
     return [" ".join(c) for c in calls]
 
 
-# ── inventory-init ────────────────────────────────────────────────────────────
+# ── cluster create (nouveau projet) ──────────────────────────────────────────
 
 
-def test_inventory_init_creates_project_dir(tmp_path):
-    from ops_cluster.kubewi.commands import _inventory_init
-    _inventory_init(Namespace(name='mon-cluster', dir=str(tmp_path)))
+def test_create_project_creates_dir(tmp_path):
+    from ops_cluster.kubewi.commands import _create_project
+    _create_project(Namespace(name='mon-cluster', dir=str(tmp_path)))
     assert (tmp_path / 'mon-cluster').is_dir()
 
 
-def test_inventory_init_creates_marker(tmp_path):
+def test_create_project_creates_marker(tmp_path):
     from kubewi._project import MARKER
-    from ops_cluster.kubewi.commands import _inventory_init
-    _inventory_init(Namespace(name='mon-cluster', dir=str(tmp_path)))
+    from ops_cluster.kubewi.commands import _create_project
+    _create_project(Namespace(name='mon-cluster', dir=str(tmp_path)))
     assert (tmp_path / 'mon-cluster' / MARKER).exists()
 
 
-def test_inventory_init_creates_controller_host(tmp_path):
-    from ops_cluster.kubewi.commands import _inventory_init
-    _inventory_init(Namespace(name='mon-cluster', dir=str(tmp_path)))
+def test_create_project_creates_controller_host(tmp_path):
+    from ops_cluster.kubewi.commands import _create_project
+    _create_project(Namespace(name='mon-cluster', dir=str(tmp_path)))
     assert (tmp_path / 'mon-cluster' / 'hosts' / 'controller-01.yml').exists()
 
 
-def test_inventory_init_creates_vault_yml(tmp_path):
-    from ops_cluster.kubewi.commands import _inventory_init
-    _inventory_init(Namespace(name='mon-cluster', dir=str(tmp_path)))
+def test_create_project_creates_vault_yml(tmp_path):
+    from ops_cluster.kubewi.commands import _create_project
+    _create_project(Namespace(name='mon-cluster', dir=str(tmp_path)))
     assert (tmp_path / 'mon-cluster' / 'group_vars' / 'all' / 'vault.yml').exists()
 
 
-def test_inventory_init_creates_cluster_yml(tmp_path):
-    from ops_cluster.kubewi.commands import _inventory_init
-    _inventory_init(Namespace(name='mon-cluster', dir=str(tmp_path)))
+def test_create_project_creates_cluster_yml(tmp_path):
+    from ops_cluster.kubewi.commands import _create_project
+    _create_project(Namespace(name='mon-cluster', dir=str(tmp_path)))
     assert (tmp_path / 'mon-cluster' / 'cluster.yml').exists()
 
 
-# ── init (génère hosts.yml depuis hosts/*.yml) ────────────────────────────────
+# ── cluster apply génère hosts.yml ────────────────────────────────────────────
 
 
-def test_cluster_init_generates_hosts_yml(project_dir):
-    from ops_cluster.kubewi.commands import _init
-    _init()
+def test_apply_generates_hosts_yml(project_dir):
+    from kubewi._hostfile import generate_ansible_inventory
+    generate_ansible_inventory(project_dir)
     assert (project_dir / 'hosts.yml').exists()
 
 
-def test_cluster_init_output_contains_controller(project_dir):
-    from ops_cluster.kubewi.commands import _init
-    _init()
+def test_apply_hosts_yml_contains_controller(project_dir):
+    from kubewi._hostfile import generate_ansible_inventory
+    generate_ansible_inventory(project_dir)
     content = (project_dir / 'hosts.yml').read_text()
     assert 'controller-01' in content
 
 
-def test_cluster_init_output_contains_gateway_section(project_dir):
-    from ops_cluster.kubewi.commands import _init
-    _init()
+def test_apply_hosts_yml_contains_gateway_section(project_dir):
+    from kubewi._hostfile import generate_ansible_inventory
+    generate_ansible_inventory(project_dir)
     content = (project_dir / 'hosts.yml').read_text()
     assert 'gateways' in content
 

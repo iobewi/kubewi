@@ -95,20 +95,17 @@ Les adresses IP sur le VLAN 220 (``192.168.22.X``) restent séquentielles via
 
 ----
 
-``cluster create`` — bootstrap du gateway
-------------------------------------------
+``cluster create`` — création du projet
+----------------------------------------
 
-1. Localise le fichier host du gateway (``cluster.yml → gateway`` ou premier
-   fichier avec ``plg_gateway``).
-2. Teste si la clé SSH est déjà acceptée (``BatchMode=yes``) ; si non, demande
-   le mot de passe.
-3. Exécute ``init.yml`` via Ansible.
-4. Lit la MAC de l'interface principale via SSH
-   (``cat /sys/class/net/<iface>/address``).
-5. Renomme le fichier host et met à jour ``cluster.yml → gateway``.
-6. Monte le tunnel VPN SDK (``plg_vpn``), attend que l'IP WireGuard soit
-   joignable.
-7. Exécute ``gateway.yml`` (configuration réseau définitive).
+``kubewi cluster create <nom>`` initialise un répertoire projet vide :
+
+1. Crée le répertoire ``<nom>/`` avec le marqueur ``.kubewi-project``.
+2. Crée ``hosts/controller-01.yml`` (template pré-rempli à éditer).
+3. Crée ``cluster.yml``, ``group_vars/all/vault.yml``, ``.gitignore``.
+
+Aucune connexion réseau n'est établie à cette étape. C'est ``cluster apply``
+qui orchestre le bootstrap une fois le fichier host renseigné.
 
 ----
 
@@ -132,8 +129,25 @@ Saute les étapes 1-3, passe directement au bootstrap Ansible (étapes 4-7).
 
 ----
 
-``cluster apply`` — hash cache
---------------------------------
+``cluster apply`` — bootstrap + hash cache
+-------------------------------------------
+
+``cluster apply`` est la commande centrale : elle orchestre le déploiement de
+tous les nœuds déclarés dans ``hosts/*.yml``, du gateway jusqu'aux workers.
+
+Pour le **gateway controller** (``plg_gateway`` présent, hors ligne) :
+
+1. Teste si la clé SSH est déjà acceptée (``BatchMode=yes``) ; si non, demande
+   le mot de passe.
+2. Exécute ``init.yml`` via Ansible (bootstrap système).
+3. Lit la MAC de l'interface principale via SSH
+   (``cat /sys/class/net/<iface>/address``).
+4. Renomme le fichier host et met à jour ``cluster.yml → gateway``
+   (``controller-01`` → ``controller-<MAC>``).
+5. Monte le tunnel VPN SDK (``plg_vpn``), attend que l'IP WireGuard soit
+   joignable.
+6. Exécute ``gateway.yml`` (configuration réseau définitive).
+7. Enrôle le nœud dans k0s (``controller.yml``).
 
 À chaque appel, ``cluster apply`` régénère ``hosts.yml`` depuis ``hosts/*.yml``
 et compare son SHA256 au fichier ``.kubewi/hosts.yml.hash``.
