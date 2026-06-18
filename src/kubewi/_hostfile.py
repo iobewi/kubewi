@@ -150,7 +150,7 @@ def to_ansible_inventory(hosts: list[dict], cluster: dict) -> dict:
     for h in hosts:
         name     = h.get('name', '')
         k0s_role = ((h.get('eng_k0s') or {}).get('role') or '')
-        is_gw    = 'plg_gateway' in h
+        is_gw    = 'plg_gateway' in h and k0s_role == 'controller'
         avars    = _ansible_vars(h)
 
         if is_gw:
