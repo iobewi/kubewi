@@ -16,32 +16,32 @@ def _cmds(calls: list[list[str]]) -> list[str]:
 
 
 def test_create_project_creates_dir(tmp_path):
-    from ops_cluster.kubewi.commands import _create_project
+    from ops_cluster.kubewi._create import _create_project
     _create_project(Namespace(name='mon-cluster', dir=str(tmp_path)))
     assert (tmp_path / 'mon-cluster').is_dir()
 
 
 def test_create_project_creates_marker(tmp_path):
     from kubewi._project import MARKER
-    from ops_cluster.kubewi.commands import _create_project
+    from ops_cluster.kubewi._create import _create_project
     _create_project(Namespace(name='mon-cluster', dir=str(tmp_path)))
     assert (tmp_path / 'mon-cluster' / MARKER).exists()
 
 
 def test_create_project_creates_controller_host(tmp_path):
-    from ops_cluster.kubewi.commands import _create_project
+    from ops_cluster.kubewi._create import _create_project
     _create_project(Namespace(name='mon-cluster', dir=str(tmp_path)))
     assert (tmp_path / 'mon-cluster' / 'hosts' / 'controller-01.yml').exists()
 
 
 def test_create_project_creates_vault_yml(tmp_path):
-    from ops_cluster.kubewi.commands import _create_project
+    from ops_cluster.kubewi._create import _create_project
     _create_project(Namespace(name='mon-cluster', dir=str(tmp_path)))
     assert (tmp_path / 'mon-cluster' / 'group_vars' / 'all' / 'vault.yml').exists()
 
 
 def test_create_project_creates_cluster_yml(tmp_path):
-    from ops_cluster.kubewi.commands import _create_project
+    from ops_cluster.kubewi._create import _create_project
     _create_project(Namespace(name='mon-cluster', dir=str(tmp_path)))
     assert (tmp_path / 'mon-cluster' / 'cluster.yml').exists()
 
@@ -73,7 +73,7 @@ def test_apply_hosts_yml_contains_gateway_section(project_dir):
 
 
 def test_wifi_ap_updates_vault(project_dir, monkeypatch):
-    from ops_cluster.kubewi.commands import _wifi
+    from ops_cluster.kubewi._vault import _wifi
     vault = project_dir / 'group_vars' / 'all' / 'vault.yml'
     vault.write_text('vault_wifi_ap_psk: ""\nvault_wifi_ssid: ""\nvault_wifi_psk: ""\n')
     inputs = iter(['1'])
@@ -84,7 +84,7 @@ def test_wifi_ap_updates_vault(project_dir, monkeypatch):
 
 
 def test_wifi_client_updates_vault(project_dir, monkeypatch):
-    from ops_cluster.kubewi.commands import _wifi
+    from ops_cluster.kubewi._vault import _wifi
     vault = project_dir / 'group_vars' / 'all' / 'vault.yml'
     vault.write_text('vault_wifi_ap_psk: ""\nvault_wifi_ssid: ""\nvault_wifi_psk: ""\n')
     inputs = iter(['2', 'MySSID'])
@@ -108,14 +108,14 @@ def test_vault_encrypt_calls_ansible_vault(mock_subprocess, project_dir):
 
 
 def test_add_worker_manual_missing_file_exits(project_dir):
-    from ops_cluster.kubewi.commands import _add_worker
+    from ops_cluster.kubewi._add import _add_worker
     import pytest
     with pytest.raises(SystemExit):
         _add_worker(Namespace(name='worker-aabbcc', ifaces=2, dry_run=False, yes=False))
 
 
 def test_add_worker_manual_calls_worker_init_and_add(mock_subprocess, project_dir, monkeypatch):
-    from ops_cluster.kubewi.commands import _add_worker
+    from ops_cluster.kubewi._add import _add_worker
 
     (project_dir / 'hosts' / 'worker-aabbcc.yml').write_text(
         'kubewi:\n  host:\n'
@@ -141,14 +141,14 @@ def test_add_worker_manual_calls_worker_init_and_add(mock_subprocess, project_di
 
 
 def test_add_controller_missing_file_exits(project_dir):
-    from ops_cluster.kubewi.commands import _add_controller
+    from ops_cluster.kubewi._add import _add_controller
     import pytest
     with pytest.raises(SystemExit):
         _add_controller(Namespace(name='controller-x', yes=True))
 
 
 def test_add_controller_calls_init_and_controller_yml(mock_subprocess, project_dir, monkeypatch):
-    from ops_cluster.kubewi.commands import _add_controller
+    from ops_cluster.kubewi._add import _add_controller
 
     (project_dir / 'hosts' / 'controller-aabbcc.yml').write_text(
         'kubewi:\n  host:\n'
